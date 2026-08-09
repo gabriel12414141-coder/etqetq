@@ -23,9 +23,10 @@ local camera = workspace.CurrentCamera
 -- CONFIGURAÇÕES
 -- ============================================
 
-local TAG_FRUTA = "fruit"          -- tag usada nos objetos de fruta
+local DROPPED_FRUITS_PATH = workspace -- ajuste se "DroppedFruits" não ficar direto no Workspace
+local NOME_PASTA_FRUTAS = "DroppedFruits" -- pasta onde as frutas dropadas aparecem
 local TAG_ILHA = "Ilha"            -- tag opcional usada nos models das ilhas
-local DISTANCIA_VISUAL_3D = 150    -- só mostra billboard/highlight dentro desse raio
+local DISTANCIA_VISUAL_3D = 150    -- só mostra o highlight dentro desse raio
 local DISTANCIA_MAXIMA_RADAR = 100000 -- radar funciona no mapa inteiro
 local MAX_ITENS_MENU = 25          -- limite de itens mostrados na lista/radar (evita clutter e lag)
 local INTERVALO_ATUALIZACAO = 0.3  -- segundos entre recálculos pesados (distância, ordenação)
@@ -34,8 +35,36 @@ local TECLA_TOGGLE = Enum.KeyCode.F
 local MARGEM_TELA = 40             -- margem da seta em relação à borda da tela
 
 local espAtivo = false
-local espAtivos = {} -- [fruta] = { billboard, highlight, texto, itemFrame, arrowLabel, ilha }
+local espAtivos = {} -- [fruta] = { highlight, itemFrame, arrowLabel, ilha, nome }
 local acumuladorTempo = 0
+
+-- ============================================
+-- IDENTIFICAÇÃO DE FRUTAS (mesmas convenções do seu jogo)
+-- ============================================
+
+-- Substitua pelos nomes reais das suas frutas (mesma lista usada no resto do jogo)
+local FRUITS = {
+    -- "NomeDaFruta1", "NomeDaFruta2", ...
+}
+
+local function identifyByAttributes(fruta)
+    return fruta:GetAttribute("FruitName")
+        or fruta:GetAttribute("Fruit")
+        or fruta:GetAttribute("FruitType")
+end
+
+local function identifyByName(fruta)
+    for _, nome in ipairs(FRUITS) do
+        if fruta.Name == nome or fruta.Name:find(nome, 1, true) then
+            return nome
+        end
+    end
+    return nil
+end
+
+local function identifyFruit(fruta)
+    return identifyByAttributes(fruta) or identifyByName(fruta) or fruta.Name
+end
 
 -- ============================================
 -- FUNÇÃO: descobrir em qual ilha a fruta está
@@ -215,26 +244,11 @@ end
 local function criarEntradaFruta(fruta)
     if espAtivos[fruta] then return end
 
-    -- Billboard 3D (só aparece quando perto)
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "ESP_Fruta"
-    billboard.Size = UDim2.new(0, 100, 0, 40)
-    billboard.StudsOffset = Vector3.new(0, 2, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Adornee = fruta
-    billboard.Enabled = false
-    billboard.Parent = fruta
+    local nome = identifyFruit(fruta)
 
-    local texto = Instance.new("TextLabel")
-    texto.Size = UDim2.new(1, 0, 1, 0)
-    texto.BackgroundTransparency = 1
-    texto.TextColor3 = COR_ESP
-    texto.TextStrokeTransparency = 0
-    texto.Font = Enum.Font.GothamBold
-    texto.TextSize = 16
-    texto.Text = fruta.Name
-    texto.Parent = billboard
-
+    -- Não criamos um BillboardGui de nome próprio: o jogo já tem "FruitNameDisplay"
+    -- acima da fruta. Aqui só adicionamos o contorno (Highlight) pra reforçar
+    -- visualmente quando o ESP está ligado e a fruta está perto.
     local highlight = Instance.new("Highlight")
     highlight.FillColor = COR_ESP
     highlight.FillTransparency = 0.7
@@ -246,7 +260,7 @@ local function criarEntradaFruta(fruta)
     local itemFrame = Instance.new("TextLabel")
     itemFrame.Size = UDim2.new(1, 0, 0, 32)
     itemFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    itemFrame.Text = "  🍊 " .. fruta.Name
+    itemFrame.Text = "  🍊 " .. nome
     itemFrame.TextColor3 = Color3.new(1, 1, 1)
     itemFrame.Font = Enum.Font.Gotham
     itemFrame.TextSize = 12
@@ -261,7 +275,7 @@ local function criarEntradaFruta(fruta)
 
     -- Seta de radar (2D, borda da tela)
     local arrowLabel = Instance.new("TextLabel")
-    arrowLabel.Name = "Seta_" .. fruta.Name
+    arrowLabel.Name = "Seta_" .. nome
     arrowLabel.Size = UDim2.new(0, 50, 0, 26)
     arrowLabel.AnchorPoint = Vector2.new(0.5, 0.5)
     arrowLabel.BackgroundTransparency = 1
@@ -285,13 +299,12 @@ local function criarEntradaFruta(fruta)
     arrowDistText.Parent = arrowLabel
 
     espAtivos[fruta] = {
-        billboard = billboard,
         highlight = highlight,
-        texto = texto,
         itemFrame = itemFrame,
         arrowLabel = arrowLabel,
         arrowDistText = arrowDistText,
         ilha = acharIlha(fruta),
+        nome = nome,
     }
 
     atualizarContador()
@@ -300,7 +313,6 @@ end
 local function removerEntradaFruta(fruta)
     local dados = espAtivos[fruta]
     if dados then
-        dados.billboard:Destroy()
         dados.highlight:Destroy()
         dados.itemFrame:Destroy()
         dados.arrowLabel:Destroy()
@@ -308,6 +320,7 @@ local function removerEntradaFruta(fruta)
         atualizarContador()
     end
 end
+
 
 -- ============================================
 -- ATUALIZAÇÃO PESADA (throttled): distância, ordenação, ilha
@@ -338,19 +351,15 @@ local function atualizarListaEDistancias()
 
         -- Atualiza texto da lista (LayoutOrder = distância -> ordena automaticamente)
         dados.itemFrame.LayoutOrder = distanciaTexto
-        dados.itemFrame.Text = string.format("  🍊 %s\n     %s - %dm", fruta.Name, dados.ilha, distanciaTexto)
+        dados.itemFrame.Text = string.format("  🍊 %s\n     %s - %dm", dados.nome, dados.ilha, distanciaTexto)
 
         -- Só mostra na lista/radar os N mais próximos (evita clutter em mapa gigante)
         local dentroDoLimite = indice <= MAX_ITENS_MENU
         dados.itemFrame.Visible = dentroDoLimite
 
-        -- Billboard/Highlight 3D só quando MUITO perto
+        -- Highlight 3D só quando MUITO perto
         local perto = distancia <= DISTANCIA_VISUAL_3D
-        dados.billboard.Enabled = espAtivo and perto
         dados.highlight.Enabled = espAtivo and perto
-        if perto then
-            dados.texto.Text = fruta.Name .. " [" .. distanciaTexto .. "m]"
-        end
 
         -- Radar só pros N mais próximos e se ESP ligado
         dados.arrowLabel.Visible = espAtivo and dentroDoLimite
@@ -416,7 +425,6 @@ local function definirEstadoESP(ligado)
         botaoToggle.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
         -- Desliga tudo imediatamente
         for _, dados in pairs(espAtivos) do
-            dados.billboard.Enabled = false
             dados.highlight.Enabled = false
             dados.arrowLabel.Visible = false
         end
@@ -438,10 +446,12 @@ end)
 -- INICIALIZAÇÃO
 -- ============================================
 
-CollectionService:GetInstanceAddedSignal(TAG_FRUTA):Connect(criarEntradaFruta)
-CollectionService:GetInstanceRemovedSignal(TAG_FRUTA):Connect(removerEntradaFruta)
+local pastaFrutas = DROPPED_FRUITS_PATH:WaitForChild(NOME_PASTA_FRUTAS)
 
-for _, fruta in ipairs(CollectionService:GetTagged(TAG_FRUTA)) do
+pastaFrutas.ChildAdded:Connect(criarEntradaFruta)
+pastaFrutas.ChildRemoved:Connect(removerEntradaFruta)
+
+for _, fruta in ipairs(pastaFrutas:GetChildren()) do
     criarEntradaFruta(fruta)
 end
 
