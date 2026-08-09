@@ -1,1030 +1,340 @@
---============================================================
--- FRUIT NOTIFIER REWORK
--- SINGLE LOCAL SCRIPT
---============================================================
+```lua
+--========================================================--
+--              FRUIT NOTIFIER - GUI TEST                --
+--                    LocalScript                         --
+--========================================================--
 
 local Players = game:GetService("Players")
-local CollectionService = game:GetService("CollectionService")
-local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
 
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
---============================================================
--- CONFIGURAÇÃO
---============================================================
-
-local CONFIG = {
-	TAG = "Fruit",
-
-	MAX_NOTIFICATIONS = 5,
-
-	NOTIFICATION_TIME = 8,
-
-	WIDTH = 360,
-
-	HEIGHT = 80,
-
-	RIGHT = 20,
-
-	TOP = 70,
-
-	DISTANCE_UPDATE = 0.5,
-}
-
---============================================================
--- FRUTAS
---============================================================
-
-local Fruits = {
-	["Rocket Fruit"] = {
-		Rarity = "Common",
-		Emoji = "🚀",
-	},
-
-	["Spin Fruit"] = {
-		Rarity = "Common",
-		Emoji = "🌀",
-	},
-
-	["Chop Fruit"] = {
-		Rarity = "Common",
-		Emoji = "✂️",
-	},
-
-	["Spring Fruit"] = {
-		Rarity = "Common",
-		Emoji = "🟢",
-	},
-
-	["Bomb Fruit"] = {
-		Rarity = "Common",
-		Emoji = "💣",
-	},
-
-	["Smoke Fruit"] = {
-		Rarity = "Common",
-		Emoji = "💨",
-	},
-
-	["Flame Fruit"] = {
-		Rarity = "Uncommon",
-		Emoji = "🔥",
-	},
-
-	["Ice Fruit"] = {
-		Rarity = "Uncommon",
-		Emoji = "❄️",
-	},
-
-	["Sand Fruit"] = {
-		Rarity = "Uncommon",
-		Emoji = "🏜️",
-	},
-
-	["Dark Fruit"] = {
-		Rarity = "Rare",
-		Emoji = "🌑",
-	},
-
-	["Light Fruit"] = {
-		Rarity = "Rare",
-		Emoji = "💡",
-	},
-
-	["Magma Fruit"] = {
-		Rarity = "Rare",
-		Emoji = "🌋",
-	},
-
-	["Quake Fruit"] = {
-		Rarity = "Legendary",
-		Emoji = "💥",
-	},
-
-	["Buddha Fruit"] = {
-		Rarity = "Legendary",
-		Emoji = "🧘",
-	},
-
-	["Love Fruit"] = {
-		Rarity = "Legendary",
-		Emoji = "💗",
-	},
-
-	["Spider Fruit"] = {
-		Rarity = "Legendary",
-		Emoji = "🕷️",
-	},
-
-	["Phoenix Fruit"] = {
-		Rarity = "Legendary",
-		Emoji = "🔥",
-	},
-
-	["Portal Fruit"] = {
-		Rarity = "Legendary",
-		Emoji = "🌀",
-	},
-
-	["Rumble Fruit"] = {
-		Rarity = "Legendary",
-		Emoji = "⚡",
-	},
-
-	["Blizzard Fruit"] = {
-		Rarity = "Legendary",
-		Emoji = "🌨️",
-	},
-
-	["Mammoth Fruit"] = {
-		Rarity = "Mythical",
-		Emoji = "🐘",
-	},
-
-	["T-Rex Fruit"] = {
-		Rarity = "Mythical",
-		Emoji = "🦖",
-	},
-
-	["Dough Fruit"] = {
-		Rarity = "Mythical",
-		Emoji = "🍩",
-	},
-
-	["Shadow Fruit"] = {
-		Rarity = "Mythical",
-		Emoji = "🌑",
-	},
-
-	["Venom Fruit"] = {
-		Rarity = "Mythical",
-		Emoji = "🐍",
-	},
-
-	["Control Fruit"] = {
-		Rarity = "Mythical",
-		Emoji = "🧲",
-	},
-
-	["Spirit Fruit"] = {
-		Rarity = "Mythical",
-		Emoji = "👻",
-	},
-
-	["Leopard Fruit"] = {
-		Rarity = "Mythical",
-		Emoji = "🐆",
-	},
-
-	["Kitsune Fruit"] = {
-		Rarity = "Mythical",
-		Emoji = "🦊",
-	},
-
-	["Dragon Fruit"] = {
-		Rarity = "Mythical",
-		Emoji = "🐉",
-	},
-}
-
---============================================================
--- REMOVE GUI ANTIGA
---============================================================
-
-local OldGui = PlayerGui:FindFirstChild("FruitNotifier")
-
-if OldGui then
-	OldGui:Destroy()
+-- Remove GUI anterior
+local old = playerGui:FindFirstChild("FruitNotifierGUI")
+if old then
+    old:Destroy()
 end
 
---============================================================
--- GUI
---============================================================
+--========================================================--
+-- CONFIG
+--========================================================--
 
-local Gui = Instance.new("ScreenGui")
+local Enabled = true
 
-Gui.Name = "FruitNotifier"
+--========================================================--
+-- SCREEN GUI
+--========================================================--
 
-Gui.ResetOnSpawn = false
+local gui = Instance.new("ScreenGui")
+gui.Name = "FruitNotifierGUI"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = playerGui
 
-Gui.IgnoreGuiInset = true
+--========================================================--
+-- MAIN
+--========================================================--
 
-Gui.DisplayOrder = 999
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 360, 0, 430)
+main.Position = UDim2.new(0.5, -180, 0.5, -215)
+main.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+main.BorderSizePixel = 0
+main.Parent = gui
 
-Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = main
 
-Gui.Parent = PlayerGui
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(60, 60, 75)
+stroke.Thickness = 1
+stroke.Parent = main
 
---============================================================
--- CONTAINER
---============================================================
+--========================================================--
+-- HEADER
+--========================================================--
 
-local Container = Instance.new("Frame")
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 70)
+header.BackgroundColor3 = Color3.fromRGB(25, 25, 34)
+header.BorderSizePixel = 0
+header.Parent = main
 
-Container.Name = "Notifications"
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 14)
+headerCorner.Parent = header
 
-Container.AnchorPoint = Vector2.new(1, 0)
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -30, 0, 35)
+title.Position = UDim2.new(0, 15, 0, 8)
+title.BackgroundTransparency = 1
+title.Text = "🍎  FRUIT NOTIFIER"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 22
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
 
-Container.Position = UDim2.new(
-	1,
-	-CONFIG.RIGHT,
-	0,
-	CONFIG.TOP
-)
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, -30, 0, 20)
+subtitle.Position = UDim2.new(0, 15, 0, 43)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Sistema de detecção"
+subtitle.TextColor3 = Color3.fromRGB(150, 150, 165)
+subtitle.TextSize = 12
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Parent = header
 
-Container.Size = UDim2.new(
-	0,
-	CONFIG.WIDTH,
-	0,
-	500
-)
+--========================================================--
+-- STATUS
+--========================================================--
 
-Container.BackgroundTransparency = 1
+local statusFrame = Instance.new("Frame")
+statusFrame.Size = UDim2.new(1, -30, 0, 55)
+statusFrame.Position = UDim2.new(0, 15, 0, 85)
+statusFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 37)
+statusFrame.BorderSizePixel = 0
+statusFrame.Parent = main
 
-Container.Parent = Gui
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 10)
+statusCorner.Parent = statusFrame
 
---============================================================
--- LIST
---============================================================
+local statusDot = Instance.new("TextLabel")
+statusDot.Size = UDim2.new(0, 30, 1, 0)
+statusDot.Position = UDim2.new(0, 10, 0, 0)
+statusDot.BackgroundTransparency = 1
+statusDot.Text = "●"
+statusDot.TextColor3 = Color3.fromRGB(80, 255, 120)
+statusDot.TextSize = 20
+statusDot.Font = Enum.Font.GothamBold
+statusDot.Parent = statusFrame
 
-local Layout = Instance.new("UIListLayout")
+local statusText = Instance.new("TextLabel")
+statusText.Size = UDim2.new(1, -50, 1, 0)
+statusText.Position = UDim2.new(0, 42, 0, 0)
+statusText.BackgroundTransparency = 1
+statusText.Text = "NOTIFICADOR ATIVO"
+statusText.TextColor3 = Color3.fromRGB(230, 230, 235)
+statusText.TextSize = 14
+statusText.Font = Enum.Font.GothamBold
+statusText.TextXAlignment = Enum.TextXAlignment.Left
+statusText.Parent = statusFrame
 
-Layout.Padding = UDim.new(0, 8)
+--========================================================--
+-- BOTÃO ATIVAR
+--========================================================--
 
-Layout.HorizontalAlignment =
-	Enum.HorizontalAlignment.Right
+local toggle = Instance.new("TextButton")
+toggle.Size = UDim2.new(1, -30, 0, 42)
+toggle.Position = UDim2.new(0, 15, 0, 155)
+toggle.BackgroundColor3 = Color3.fromRGB(45, 45, 58)
+toggle.BorderSizePixel = 0
+toggle.Text = "DESATIVAR"
+toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggle.TextSize = 14
+toggle.Font = Enum.Font.GothamBold
+toggle.Parent = main
 
-Layout.VerticalAlignment =
-	Enum.VerticalAlignment.Top
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 9)
+toggleCorner.Parent = toggle
 
-Layout.SortOrder =
-	Enum.SortOrder.LayoutOrder
+--========================================================--
+-- BOTÃO TESTE
+--========================================================--
 
-Layout.Parent = Container
+local test = Instance.new("TextButton")
+test.Size = UDim2.new(1, -30, 0, 42)
+test.Position = UDim2.new(0, 15, 0, 205)
+test.BackgroundColor3 = Color3.fromRGB(65, 85, 150)
+test.BorderSizePixel = 0
+test.Text = "🧪  TESTAR FRUTA"
+test.TextColor3 = Color3.fromRGB(255, 255, 255)
+test.TextSize = 14
+test.Font = Enum.Font.GothamBold
+test.Parent = main
 
---============================================================
--- CONTROLE
---============================================================
+local testCorner = Instance.new("UICorner")
+testCorner.CornerRadius = UDim.new(0, 9)
+testCorner.Parent = test
 
-local ActiveCards = {}
+--========================================================--
+-- HISTÓRICO
+--========================================================--
 
-local Detected = {}
+local historyTitle = Instance.new("TextLabel")
+historyTitle.Size = UDim2.new(1, -30, 0, 25)
+historyTitle.Position = UDim2.new(0, 15, 0, 260)
+historyTitle.BackgroundTransparency = 1
+historyTitle.Text = "HISTÓRICO"
+historyTitle.TextColor3 = Color3.fromRGB(170, 170, 185)
+historyTitle.TextSize = 12
+historyTitle.Font = Enum.Font.GothamBold
+historyTitle.TextXAlignment = Enum.TextXAlignment.Left
+historyTitle.Parent = main
 
-local Order = 0
+local history = Instance.new("ScrollingFrame")
+history.Size = UDim2.new(1, -30, 0, 115)
+history.Position = UDim2.new(0, 15, 0, 290)
+history.BackgroundColor3 = Color3.fromRGB(12, 12, 17)
+history.BorderSizePixel = 0
+history.ScrollBarThickness = 3
+history.CanvasSize = UDim2.new(0, 0, 0, 0)
+history.Parent = main
 
---============================================================
--- COR DA RARIDADE
---============================================================
+local historyCorner = Instance.new("UICorner")
+historyCorner.CornerRadius = UDim.new(0, 9)
+historyCorner.Parent = history
 
-local function RarityColor(Rarity)
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 2)
+layout.Parent = history
 
-	if Rarity == "Common" then
-		return Color3.fromRGB(180, 180, 180)
+--========================================================--
+-- FUNÇÃO HISTÓRICO
+--========================================================--
 
-	elseif Rarity == "Uncommon" then
-		return Color3.fromRGB(70, 220, 110)
+local function addHistory(text)
 
-	elseif Rarity == "Rare" then
-		return Color3.fromRGB(70, 150, 255)
+    local item = Instance.new("TextLabel")
+    item.Size = UDim2.new(1, -10, 0, 27)
+    item.BackgroundTransparency = 1
+    item.Text = text
+    item.TextColor3 = Color3.fromRGB(220, 220, 225)
+    item.TextSize = 12
+    item.Font = Enum.Font.Gotham
+    item.TextXAlignment = Enum.TextXAlignment.Left
+    item.Parent = history
 
-	elseif Rarity == "Legendary" then
-		return Color3.fromRGB(190, 90, 255)
+    task.wait()
 
-	elseif Rarity == "Mythical" then
-		return Color3.fromRGB(255, 80, 90)
-	end
+    history.CanvasSize = UDim2.new(
+        0,
+        0,
+        0,
+        layout.AbsoluteContentSize.Y + 8
+    )
 
-	return Color3.fromRGB(255, 255, 255)
+    history.CanvasPosition = Vector2.new(
+        0,
+        layout.AbsoluteContentSize.Y
+    )
 end
 
---============================================================
--- POSIÇÃO
---============================================================
+--========================================================--
+-- NOTIFICAÇÃO
+--========================================================--
 
-local function GetPosition(Object)
+local function notifyFruit(name)
 
-	if Object:IsA("BasePart") then
-		return Object.Position
-	end
+    addHistory(
+        "🍎 " .. name .. "  •  " .. os.date("%H:%M:%S")
+    )
 
-	if Object:IsA("Model") then
-
-		if Object.PrimaryPart then
-			return Object.PrimaryPart.Position
-		end
-
-		local Part =
-			Object:FindFirstChildWhichIsA(
-				"BasePart",
-				true
-			)
-
-		if Part then
-			return Part.Position
-		end
-	end
-
-	return nil
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "🍎 FRUIT DETECTADA",
+            Text = name,
+            Duration = 5
+        })
+    end)
 end
 
---============================================================
--- NOME
---============================================================
+--========================================================--
+-- TOGGLE
+--========================================================--
 
-local function GetFruitName(Object)
+toggle.MouseButton1Click:Connect(function()
 
-	local Attribute =
-		Object:GetAttribute("FruitName")
+    Enabled = not Enabled
 
-	if typeof(Attribute) == "string" then
+    if Enabled then
 
-		if Fruits[Attribute] then
-			return Attribute
-		end
-	end
+        statusDot.TextColor3 = Color3.fromRGB(80, 255, 120)
+        statusText.Text = "NOTIFICADOR ATIVO"
+        toggle.Text = "DESATIVAR"
 
-	if Fruits[Object.Name] then
-		return Object.Name
-	end
+        addHistory("✓ Notificador ativado")
 
-	return nil
-end
+    else
 
---============================================================
--- DISTÂNCIA
---============================================================
+        statusDot.TextColor3 = Color3.fromRGB(255, 80, 80)
+        statusText.Text = "NOTIFICADOR DESATIVADO"
+        toggle.Text = "ATIVAR"
 
-local function GetDistance(Position)
+        addHistory("✕ Notificador desativado")
 
-	local Character =
-		Player.Character
+    end
+end)
 
-	if not Character then
-		return nil
-	end
+--========================================================--
+-- TESTE
+--========================================================--
 
-	local Root =
-		Character:FindFirstChild(
-			"HumanoidRootPart"
-		)
+test.MouseButton1Click:Connect(function()
 
-	if not Root then
-		return nil
-	end
+    if not Enabled then
+        addHistory("⚠ Notificador está desativado")
+        return
+    end
 
-	return (
-		Root.Position - Position
-	).Magnitude
-end
+    notifyFruit("Dragon Fruit")
 
---============================================================
--- FORMATAR DISTÂNCIA
---============================================================
+end)
 
-local function FormatDistance(Distance)
+--========================================================--
+-- ARRASTAR JANELA
+--========================================================--
 
-	if not Distance then
-		return "???"
-	end
+local UserInputService = game:GetService("UserInputService")
 
-	if Distance < 1000 then
+local dragging = false
+local dragStart
+local startPos
 
-		return string.format(
-			"%d studs",
-			math.floor(Distance)
-		)
+header.InputBegan:Connect(function(input)
 
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
 
-	return string.format(
-		"%.1fK studs",
-		Distance / 1000
-	)
-end
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
 
---============================================================
--- REMOVER CARD
---============================================================
+        input.Changed:Connect(function()
 
-local function RemoveCard(Card)
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
 
-	if not Card or not Card.Parent then
-		return
-	end
+        end)
+    end
+end)
 
-	local Tween = TweenService:Create(
+UserInputService.InputChanged:Connect(function(input)
 
-		Card,
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
 
-		TweenInfo.new(
-			0.25,
-			Enum.EasingStyle.Quint,
-			Enum.EasingDirection.In
-		),
+        local delta = input.Position - dragStart
 
-		{
-			Size = UDim2.new(
-				0,
-				0,
-				0,
-				CONFIG.HEIGHT
-			),
+        main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
 
-			BackgroundTransparency = 1
-		}
-	)
+    end
+end)
 
-	Tween:Play()
+--========================================================--
+-- INICIALIZAÇÃO
+--========================================================--
 
-	Tween.Completed:Wait()
-
-	if Card then
-		Card:Destroy()
-	end
-
-	for Index, Object in ipairs(ActiveCards) do
-
-		if Object == Card then
-
-			table.remove(
-				ActiveCards,
-				Index
-			)
-
-			break
-		end
-	end
-end
-
---============================================================
--- CRIAR NOTIFICAÇÃO
---============================================================
-
-local function Notify(
-	FruitName,
-	Position
-)
-
-	local Data =
-		Fruits[FruitName]
-
-	if not Data then
-		return
-	end
-
-	--========================================================
-	-- LIMITE
-	--========================================================
-
-	while #ActiveCards >=
-		CONFIG.MAX_NOTIFICATIONS do
-
-		local Oldest =
-			table.remove(
-				ActiveCards,
-				1
-			)
-
-		if Oldest and Oldest.Parent then
-			Oldest:Destroy()
-		end
-	end
-
-	Order += 1
-
-	--========================================================
-	-- CARD
-	--========================================================
-
-	local Card = Instance.new("Frame")
-
-	Card.Name =
-		"Fruit_" .. FruitName
-
-	Card.LayoutOrder =
-		Order
-
-	Card.Size =
-		UDim2.new(
-			0,
-			0,
-			0,
-			CONFIG.HEIGHT
-		)
-
-	Card.BackgroundColor3 =
-		Color3.fromRGB(
-			20,
-			20,
-			27
-		)
-
-	Card.BackgroundTransparency =
-		0.04
-
-	Card.BorderSizePixel = 0
-
-	Card.Parent = Container
-
-	--========================================================
-	-- CORNER
-	--========================================================
-
-	local Corner =
-		Instance.new("UICorner")
-
-	Corner.CornerRadius =
-		UDim.new(
-			0,
-			13
-		)
-
-	Corner.Parent = Card
-
-	--========================================================
-	-- STROKE
-	--========================================================
-
-	local Stroke =
-		Instance.new("UIStroke")
-
-	Stroke.Color =
-		RarityColor(
-			Data.Rarity
-		)
-
-	Stroke.Thickness =
-		1.5
-
-	Stroke.Transparency =
-		0.15
-
-	Stroke.Parent = Card
-
-	--========================================================
-	-- ÍCONE
-	--========================================================
-
-	local Icon =
-		Instance.new("TextLabel")
-
-	Icon.Size =
-		UDim2.new(
-			0,
-			55,
-			1,
-			0
-		)
-
-	Icon.Position =
-		UDim2.new(
-			0,
-			8,
-			0,
-			0
-		)
-
-	Icon.BackgroundTransparency = 1
-
-	Icon.Text =
-		Data.Emoji
-
-	Icon.TextSize =
-		29
-
-	Icon.Font =
-		Enum.Font.GothamBold
-
-	Icon.Parent =
-		Card
-
-	--========================================================
-	-- NOME
-	--========================================================
-
-	local Name =
-		Instance.new("TextLabel")
-
-	Name.Position =
-		UDim2.new(
-			0,
-			70,
-			0,
-			8
-		)
-
-	Name.Size =
-		UDim2.new(
-			1,
-			-80,
-			0,
-			25
-		)
-
-	Name.BackgroundTransparency = 1
-
-	Name.Text =
-		FruitName
-
-	Name.TextColor3 =
-		Color3.fromRGB(
-			255,
-			255,
-			255
-		)
-
-	Name.TextSize =
-		17
-
-	Name.Font =
-		Enum.Font.GothamBold
-
-	Name.TextXAlignment =
-		Enum.TextXAlignment.Left
-
-	Name.Parent =
-		Card
-
-	--========================================================
-	-- RARIDADE
-	--========================================================
-
-	local Rarity =
-		Instance.new("TextLabel")
-
-	Rarity.Position =
-		UDim2.new(
-			0,
-			70,
-			0,
-			38
-		)
-
-	Rarity.Size =
-		UDim2.new(
-			0,
-			110,
-			0,
-			18
-		)
-
-	Rarity.BackgroundTransparency = 1
-
-	Rarity.Text =
-		Data.Rarity
-
-	Rarity.TextColor3 =
-		RarityColor(
-			Data.Rarity
-		)
-
-	Rarity.TextSize =
-		12
-
-	Rarity.Font =
-		Enum.Font.GothamBold
-
-	Rarity.TextXAlignment =
-		Enum.TextXAlignment.Left
-
-	Rarity.Parent =
-		Card
-
-	--========================================================
-	-- DISTÂNCIA
-	--========================================================
-
-	local DistanceLabel =
-		Instance.new("TextLabel")
-
-	DistanceLabel.Position =
-		UDim2.new(
-			0,
-			180,
-			0,
-			38
-		)
-
-	DistanceLabel.Size =
-		UDim2.new(
-			1,
-			-190,
-			0,
-			18
-		)
-
-	DistanceLabel.BackgroundTransparency = 1
-
-	DistanceLabel.TextColor3 =
-		Color3.fromRGB(
-			175,
-			175,
-			185
-		)
-
-	DistanceLabel.TextSize =
-		12
-
-	DistanceLabel.Font =
-		Enum.Font.Gotham
-
-	DistanceLabel.TextXAlignment =
-		Enum.TextXAlignment.Right
-
-	DistanceLabel.Parent =
-		Card
-
-	--========================================================
-	-- DISTÂNCIA
-	--========================================================
-
-	local function UpdateDistance()
-
-		if not Card.Parent then
-			return
-		end
-
-		local Distance =
-			GetDistance(
-				Position
-			)
-
-		DistanceLabel.Text =
-			"📍 " ..
-			FormatDistance(
-				Distance
-			)
-	end
-
-	UpdateDistance()
-
-	--========================================================
-	-- ADICIONAR
-	--========================================================
-
-	table.insert(
-		ActiveCards,
-		Card
-	)
-
-	--========================================================
-	-- ANIMAÇÃO
-	--========================================================
-
-	local Open =
-		TweenService:Create(
-
-			Card,
-
-			TweenInfo.new(
-				0.4,
-				Enum.EasingStyle.Quint,
-				Enum.EasingDirection.Out
-			),
-
-			{
-				Size =
-					UDim2.new(
-						1,
-						0,
-						0,
-						CONFIG.HEIGHT
-					)
-			}
-		)
-
-	Open:Play()
-
-	--========================================================
-	-- ATUALIZAR DISTÂNCIA
-	--========================================================
-
-	task.spawn(function()
-
-		while Card.Parent do
-
-			UpdateDistance()
-
-			task.wait(
-				CONFIG.DISTANCE_UPDATE
-			)
-
-		end
-
-	end)
-
-	--========================================================
-	-- EXPIRAR
-	--========================================================
-
-	task.delay(
-		CONFIG.NOTIFICATION_TIME,
-		function()
-
-			RemoveCard(
-				Card
-			)
-
-		end
-	)
-end
-
---============================================================
--- DETECTAR FRUTA
---============================================================
-
-local function ProcessFruit(Object)
-
-	if not Object then
-		return
-	end
-
-	if Detected[Object] then
-		return
-	end
-
-	local FruitName =
-		GetFruitName(Object)
-
-	if not FruitName then
-		return
-	end
-
-	local Position =
-		GetPosition(Object)
-
-	if not Position then
-		return
-	end
-
-	Detected[Object] = true
-
-	print(
-		"[FruitNotifier] Encontrada:",
-		FruitName
-	)
-
-	Notify(
-		FruitName,
-		Position
-	)
-
-	Object.AncestryChanged:Connect(
-		function(_, Parent)
-
-			if not Parent then
-				Detected[Object] = nil
-			end
-
-		end
-	)
-end
-
---============================================================
--- FRUTAS QUE JÁ EXISTEM
---============================================================
-
-for _, Object in ipairs(
-	CollectionService:GetTagged(
-		CONFIG.TAG
-	)
-) do
-
-	task.defer(
-		ProcessFruit,
-		Object
-	)
-
-end
-
---============================================================
--- NOVAS FRUTAS
---============================================================
-
-CollectionService:GetInstanceAddedSignal(
-	CONFIG.TAG
-):Connect(
-	function(Object)
-
-		task.defer(
-			ProcessFruit,
-			Object
-		)
-
-	end
-)
-
---============================================================
--- GUI DE TESTE
---============================================================
-
-local TestButton =
-	Instance.new("TextButton")
-
-TestButton.Name =
-	"TestButton"
-
-TestButton.Size =
-	UDim2.fromOffset(
-		130,
-		40
-	)
-
-TestButton.Position =
-	UDim2.new(
-		0,
-		20,
-		1,
-		-60
-	)
-
-TestButton.BackgroundColor3 =
-	Color3.fromRGB(
-		30,
-		30,
-		35
-	)
-
-TestButton.Text =
-	"TESTAR FRUTA"
-
-TestButton.TextColor3 =
-	Color3.fromRGB(
-		255,
-		255,
-		255
-	)
-
-TestButton.TextSize =
-	14
-
-TestButton.Font =
-	Enum.Font.GothamBold
-
-TestButton.Parent =
-	Gui
-
-local TestCorner =
-	Instance.new("UICorner")
-
-TestCorner.CornerRadius =
-	UDim.new(
-		0,
-		8
-	)
-
-TestCorner.Parent =
-	TestButton
-
-TestButton.MouseButton1Click:Connect(
-	function()
-
-		local Character =
-			Player.Character
-
-		if not Character then
-			return
-		end
-
-		local Root =
-			Character:FindFirstChild(
-				"HumanoidRootPart"
-			)
-
-		if not Root then
-			return
-		end
-
-		Notify(
-			"Dragon Fruit",
-			Root.Position +
-				Vector3.new(
-					0,
-					0,
-					-100
-				)
-		)
-
-	end
-)
-
---============================================================
--- FINAL
---============================================================
-
-print(
-	"=========================================="
-)
-
-print(
-	"[FruitNotifier] REWORK carregado!"
-)
-
-print(
-	"[FruitNotifier] LocalScript funcionando!"
-)
-
-print(
-	"=========================================="
-)
+addHistory("✓ Fruit Notifier iniciado")
+addHistory("✓ GUI carregada")
+```
