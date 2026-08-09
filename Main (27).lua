@@ -1,922 +1,400 @@
-```lua
---============================================================
--- FRUIT NOTIFIER - TEST PLACE
--- GUI PRIMEIRO / DETECTOR DEPOIS
---
--- USO:
--- LocalScript em:
--- StarterPlayer
---   └─ StarterPlayerScripts
---
--- Detecta EXATAMENTE:
--- "Rocket Fruit"
--- "Spin Fruit"
--- ...
--- "Dragon Fruit"
---============================================================
-
---============================================================
--- SERVICES
---============================================================
+--========================================================
+-- FRUIT RECOGNITION SYSTEM
+-- Para Roblox Studio / seu próprio jogo
+--========================================================
 
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
 
---============================================================
--- PLAYER
---============================================================
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
-local player = Players.LocalPlayer
+--========================================================
+-- CONFIGURAÇÃO
+--========================================================
 
-if not player then
-	warn("[FruitNotifier] LocalPlayer não encontrado.")
-	return
-end
-
-local playerGui = player:WaitForChild("PlayerGui",10)
-
-if not playerGui then
-	warn("[FruitNotifier] PlayerGui não encontrado.")
-	return
-end
-
---============================================================
--- CONFIG
---============================================================
-
-local GUI_NAME = "FruitNotifier_Test"
-
-local RADIUS = 9000
-
-local CHECK_INTERVAL = 0.5
-
-local Enabled = true
-
-local Minimized = false
-
---============================================================
--- FRUTAS
---============================================================
+local FRUIT_FOLDER_NAME = "Fruits"
+local SCAN_INTERVAL = 0.5
 
 local FruitNames = {
-	"Rocket",
-	"Spin",
-	"Blade",
-	"Spring",
-	"Bomb",
-	"Smoke",
-	"Spike",
-	"Flame",
-	"Ice",
-	"Sand",
-	"Dark",
-	"Eagle",
-	"Diamond",
-	"Light",
-	"Rubber",
-	"Ghost",
-	"Magma",
-	"Quake",
-	"Buddha",
-	"Love",
-	"Creation",
-	"Spider",
-	"Sound",
-	"Phoenix",
-	"Portal",
-	"Lightning",
-	"Pain",
-	"Blizzard",
-	"Gravity",
-	"Mammoth",
-	"T-Rex",
-	"Dough",
-	"Shadow",
-	"Venom",
-	"Gas",
-	"Spirit",
-	"Tiger",
-	"Yeti",
-	"Kitsune",
-	"Control",
-	"Dragon"
+	["Rocket"] = true,
+	["Spin"] = true,
+	["Blade"] = true,
+	["Spring"] = true,
+	["Bomb"] = true,
+	["Smoke"] = true,
+	["Spike"] = true,
+	["Flame"] = true,
+	["Ice"] = true,
+	["Sand"] = true,
+	["Dark"] = true,
+	["Eagle"] = true,
+	["Diamond"] = true,
+	["Light"] = true,
+	["Rubber"] = true,
+	["Ghost"] = true,
+	["Magma"] = true,
+	["Kitsune"] = true,
+	["Buddha"] = true,
+	["Love"] = true,
+	["Creation"] = true,
+	["Spider"] = true,
+	["Sound"] = true,
+	["Phoenix"] = true,
+	["Portal"] = true,
+	["Lightning"] = true,
+	["Pain"] = true,
+	["Blizzard"] = true,
+	["Gravity"] = true,
+	["Mammoth"] = true,
+	["T-Rex"] = true,
+	["Dough"] = true,
+	["Shadow"] = true,
+	["Venom"] = true,
+	["Control"] = true,
+	["Spirit"] = true,
+	["Dragon"] = true,
+	["Yeti"] = true,
+	["Gas"] = true,
+	["Leopard"] = true,
 }
 
---============================================================
--- LOOKUP
---============================================================
+--========================================================
+-- REMOVE GUI ANTIGO
+--========================================================
 
-local FruitLookup = {}
-
-for _,name in ipairs(FruitNames) do
-
-	local fullName = name .. " Fruit"
-
-	FruitLookup[fullName] = fullName
-
-end
-
---============================================================
--- LIMPAR GUI ANTERIOR
---============================================================
-
-local oldGui = playerGui:FindFirstChild(GUI_NAME)
-
+local oldGui = PlayerGui:FindFirstChild("FruitRecognition")
 if oldGui then
 	oldGui:Destroy()
 end
 
---============================================================
--- SCREEN GUI
---============================================================
-
-local gui = Instance.new("ScreenGui")
-
-gui.Name = GUI_NAME
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.DisplayOrder = 999999
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-gui.Parent = playerGui
-
---============================================================
--- MAIN
---============================================================
-
-local main = Instance.new("Frame")
-
-main.Name = "Main"
-
-main.Size = UDim2.fromOffset(260,195)
-
-main.Position =
-	UDim2.new(
-		0.5,
-		-130,
-		0.5,
-		-97
-	)
-
-main.BackgroundColor3 =
-	Color3.fromRGB(18,18,24)
-
-main.BorderSizePixel = 0
-
-main.Active = true
-
-main.Parent = gui
-
---============================================================
--- MAIN CORNER
---============================================================
-
-local mainCorner = Instance.new("UICorner")
-
-mainCorner.CornerRadius =
-	UDim.new(0,10)
-
-mainCorner.Parent = main
-
---============================================================
--- MAIN STROKE
---============================================================
-
-local mainStroke = Instance.new("UIStroke")
-
-mainStroke.Color =
-	Color3.fromRGB(65,65,80)
-
-mainStroke.Thickness = 1
-
-mainStroke.Parent = main
-
---============================================================
--- HEADER
---============================================================
-
-local header = Instance.new("Frame")
-
-header.Name = "Header"
-
-header.Size =
-	UDim2.new(1,0,0,38)
-
-header.BackgroundColor3 =
-	Color3.fromRGB(27,27,36)
-
-header.BorderSizePixel = 0
-
-header.Active = true
-
-header.Parent = main
-
---============================================================
--- HEADER CORNER
---============================================================
-
-local headerCorner = Instance.new("UICorner")
-
-headerCorner.CornerRadius =
-	UDim.new(0,10)
-
-headerCorner.Parent = header
-
---============================================================
--- TITLE / DRAG BUTTON
---============================================================
-
-local dragButton = Instance.new("TextButton")
-
-dragButton.Name = "DragButton"
-
-dragButton.Size =
-	UDim2.new(1,-68,1,0)
-
-dragButton.Position =
-	UDim2.fromOffset(0,0)
-
-dragButton.BackgroundTransparency = 1
-
-dragButton.BorderSizePixel = 0
-
-dragButton.Text =
-	"🍎  Fruit Notifier"
-
-dragButton.TextColor3 =
-	Color3.fromRGB(255,255,255)
-
-dragButton.TextSize = 14
-
-dragButton.Font =
-	Enum.Font.GothamBold
-
-dragButton.TextXAlignment =
-	Enum.TextXAlignment.Left
-
-dragButton.AutoButtonColor = false
-
-dragButton.Active = true
-
-dragButton.Parent = header
-
---============================================================
--- MINIMIZE
---============================================================
-
-local minimize = Instance.new("TextButton")
-
-minimize.Name = "Minimize"
-
-minimize.Size =
-	UDim2.fromOffset(28,28)
-
-minimize.Position =
-	UDim2.new(1,-62,0,5)
-
-minimize.BackgroundColor3 =
-	Color3.fromRGB(52,52,65)
-
-minimize.BorderSizePixel = 0
-
-minimize.Text = "−"
-
-minimize.TextColor3 =
-	Color3.fromRGB(255,255,255)
-
-minimize.TextSize = 18
-
-minimize.Font =
-	Enum.Font.GothamBold
-
-minimize.Parent = header
-
-local minCorner = Instance.new("UICorner")
-
-minCorner.CornerRadius =
-	UDim.new(0,6)
-
-minCorner.Parent = minimize
-
---============================================================
--- CLOSE
---============================================================
-
-local close = Instance.new("TextButton")
-
-close.Name = "Close"
-
-close.Size =
-	UDim2.fromOffset(28,28)
-
-close.Position =
-	UDim2.new(1,-32,0,5)
-
-close.BackgroundColor3 =
-	Color3.fromRGB(120,45,50)
-
-close.BorderSizePixel = 0
-
-close.Text = "×"
-
-close.TextColor3 =
-	Color3.fromRGB(255,255,255)
-
-close.TextSize = 18
-
-close.Font =
-	Enum.Font.GothamBold
-
-close.Parent = header
-
-local closeCorner = Instance.new("UICorner")
-
-closeCorner.CornerRadius =
-	UDim.new(0,6)
-
-closeCorner.Parent = close
-
---============================================================
--- CONTENT
---============================================================
-
-local content = Instance.new("Frame")
-
-content.Name = "Content"
-
-content.Size =
-	UDim2.new(1,0,1,-38)
-
-content.Position =
-	UDim2.fromOffset(0,38)
-
-content.BackgroundTransparency = 1
-
-content.Parent = main
-
---============================================================
+--========================================================
+-- GUI
+--========================================================
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "FruitRecognition"
+Gui.ResetOnSpawn = false
+Gui.Parent = PlayerGui
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 300, 0, 380)
+Main.Position = UDim2.new(0, 20, 0.5, -190)
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Main.BorderSizePixel = 0
+Main.Parent = Gui
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 12)
+Corner.Parent = Main
+
+--========================================================
+-- TÍTULO
+--========================================================
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -20, 0, 45)
+Title.Position = UDim2.new(0, 10, 0, 5)
+Title.BackgroundTransparency = 1
+Title.Text = "🍎 Fruit Recognition"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.TextSize = 22
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Main
+
+--========================================================
 -- STATUS
---============================================================
+--========================================================
 
-local status = Instance.new("TextButton")
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, -20, 0, 30)
+Status.Position = UDim2.new(0, 10, 0, 50)
+Status.BackgroundTransparency = 1
+Status.Text = "Procurando frutas..."
+Status.TextColor3 = Color3.fromRGB(180, 180, 180)
+Status.TextSize = 14
+Status.Font = Enum.Font.Gotham
+Status.Parent = Main
 
-status.Name = "Status"
+--========================================================
+-- LISTA
+--========================================================
 
-status.Size =
-	UDim2.new(1,-20,0,30)
+local List = Instance.new("ScrollingFrame")
+List.Name = "FruitList"
+List.Size = UDim2.new(1, -20, 1, -95)
+List.Position = UDim2.new(0, 10, 0, 90)
+List.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+List.BorderSizePixel = 0
+List.ScrollBarThickness = 5
+List.CanvasSize = UDim2.new(0, 0, 0, 0)
+List.Parent = Main
 
-status.Position =
-	UDim2.fromOffset(10,7)
+local ListCorner = Instance.new("UICorner")
+ListCorner.CornerRadius = UDim.new(0, 8)
+ListCorner.Parent = List
 
-status.BackgroundColor3 =
-	Color3.fromRGB(31,31,41)
+local Layout = Instance.new("UIListLayout")
+Layout.Padding = UDim.new(0, 5)
+Layout.SortOrder = Enum.SortOrder.Name
+Layout.Parent = List
 
-status.BorderSizePixel = 0
+--========================================================
+-- FUNÇÃO: NORMALIZAR NOME
+--========================================================
 
-status.Text =
-	"● ATIVO • 9000 studs"
+local function NormalizeName(name)
+	name = tostring(name)
 
-status.TextColor3 =
-	Color3.fromRGB(80,255,120)
+	-- Remove "Fruit" do final
+	name = name:gsub("%s+[Ff]ruit$", "")
 
-status.TextSize = 11
+	-- Remove espaços extras
+	name = name:gsub("^%s+", "")
+	name = name:gsub("%s+$", "")
 
-status.Font =
-	Enum.Font.GothamBold
-
-status.Parent = content
-
-local statusCorner = Instance.new("UICorner")
-
-statusCorner.CornerRadius =
-	UDim.new(0,6)
-
-statusCorner.Parent = status
-
---============================================================
--- HISTORY
---============================================================
-
-local history = Instance.new("ScrollingFrame")
-
-history.Name = "History"
-
-history.Size =
-	UDim2.new(1,-20,1,-46)
-
-history.Position =
-	UDim2.fromOffset(10,43)
-
-history.BackgroundColor3 =
-	Color3.fromRGB(10,10,15)
-
-history.BorderSizePixel = 0
-
-history.ScrollBarThickness = 2
-
-history.ScrollBarImageTransparency = 0.25
-
-history.CanvasSize =
-	UDim2.new(0,0,0,0)
-
-history.AutomaticCanvasSize =
-	Enum.AutomaticSize.Y
-
-history.Parent = content
-
-local historyCorner = Instance.new("UICorner")
-
-historyCorner.CornerRadius =
-	UDim.new(0,7)
-
-historyCorner.Parent = history
-
-local layout = Instance.new("UIListLayout")
-
-layout.Padding =
-	UDim.new(0,1)
-
-layout.SortOrder =
-	Enum.SortOrder.LayoutOrder
-
-layout.Parent = history
-
---============================================================
--- HISTORY FUNCTION
---============================================================
-
-local function addHistory(text)
-
-	if not history or not history.Parent then
-		return
-	end
-
-	local label = Instance.new("TextLabel")
-
-	label.Size =
-		UDim2.new(1,-6,0,21)
-
-	label.BackgroundTransparency = 1
-
-	label.Text = text
-
-	label.TextColor3 =
-		Color3.fromRGB(220,220,225)
-
-	label.TextSize = 10
-
-	label.Font =
-		Enum.Font.Gotham
-
-	label.TextXAlignment =
-		Enum.TextXAlignment.Left
-
-	label.TextTruncate =
-		Enum.TextTruncate.AtEnd
-
-	label.Parent = history
-
-	task.defer(function()
-
-		if history.Parent then
-
-			history.CanvasPosition =
-				Vector2.new(
-					0,
-					math.max(
-						0,
-						history.AbsoluteCanvasSize.Y
-					)
-				)
-
-		end
-
-	end)
-
+	return name
 end
 
---============================================================
--- GUI TESTE IMEDIATO
---============================================================
-
-addHistory("✓ GUI carregada")
-addHistory("✓ 42 frutas configuradas")
-addHistory("✓ Formato: Nome Fruit")
-
---============================================================
--- DRAG SYSTEM
---============================================================
-
-local dragging = false
-
-local dragInput = nil
-
-local dragStart = nil
-
-local startPosition = nil
-
-local function updateDrag(input)
-
-	if not dragging then
-		return
-	end
-
-	if not dragStart or not startPosition then
-		return
-	end
-
-	local delta =
-		input.Position - dragStart
-
-	main.Position =
-		UDim2.new(
-			startPosition.X.Scale,
-			startPosition.X.Offset + delta.X,
-
-			startPosition.Y.Scale,
-			startPosition.Y.Offset + delta.Y
-		)
-
-end
-
-dragButton.InputBegan:Connect(function(input)
-
-	if input.UserInputType ==
-		Enum.UserInputType.MouseButton1
-		or input.UserInputType ==
-		Enum.UserInputType.Touch then
-
-		dragging = true
-
-		dragStart =
-			input.Position
-
-		startPosition =
-			main.Position
-
-		dragInput = input
-
-	end
-
-end)
-
-dragButton.InputChanged:Connect(function(input)
-
-	if input.UserInputType ==
-		Enum.UserInputType.MouseMovement
-		or input.UserInputType ==
-		Enum.UserInputType.Touch then
-
-		dragInput = input
-
-	end
-
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-
-	if dragging
-		and input == dragInput then
-
-		updateDrag(input)
-
-	elseif dragging
-		and input.UserInputType ==
-			Enum.UserInputType.MouseMovement then
-
-		updateDrag(input)
-
-	end
-
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-
-	if input.UserInputType ==
-		Enum.UserInputType.MouseButton1
-		or input.UserInputType ==
-		Enum.UserInputType.Touch then
-
-		dragging = false
-		dragInput = nil
-
-	end
-
-end)
-
---============================================================
--- MINIMIZE
---============================================================
-
-local normalSize =
-	UDim2.fromOffset(260,195)
-
-local minimizedSize =
-	UDim2.fromOffset(260,38)
-
-minimize.Activated:Connect(function()
-
-	Minimized = not Minimized
-
-	if Minimized then
-
-		content.Visible = false
-
-		main.Size =
-			minimizedSize
-
-		minimize.Text = "+"
-
-	else
-
-		content.Visible = true
-
-		main.Size =
-			normalSize
-
-		minimize.Text = "−"
-
-	end
-
-end)
-
---============================================================
--- CLOSE
---============================================================
-
-close.Activated:Connect(function()
-
-	gui:Destroy()
-
-end)
-
---============================================================
--- ENABLE/DISABLE
---============================================================
-
-status.Activated:Connect(function()
-
-	Enabled = not Enabled
-
-	if Enabled then
-
-		status.Text =
-			"● ATIVO • 9000 studs"
-
-		status.TextColor3 =
-			Color3.fromRGB(80,255,120)
-
-		addHistory("✓ Detector ativado")
-
-	else
-
-		status.Text =
-			"● DESATIVADO"
-
-		status.TextColor3 =
-			Color3.fromRGB(255,80,80)
-
-		addHistory("✕ Detector desativado")
-
-	end
-
-end)
-
---============================================================
--- SAFE POSITION
---============================================================
-
-local function getPosition(object)
-
+--========================================================
+-- FUNÇÃO: VERIFICAR SE É FRUTA
+--========================================================
+
+local function IsFruit(object)
 	if not object then
-		return nil
+		return false
 	end
 
+	local normalized = NormalizeName(object.Name)
+
+	return FruitNames[normalized] == true
+end
+
+--========================================================
+-- CRIAR ITEM NA LISTA
+--========================================================
+
+local function CreateFruitEntry(name, object)
+	local Entry = Instance.new("Frame")
+	Entry.Size = UDim2.new(1, -10, 0, 55)
+	Entry.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	Entry.BorderSizePixel = 0
+	Entry.Parent = List
+
+	local EntryCorner = Instance.new("UICorner")
+	EntryCorner.CornerRadius = UDim.new(0, 8)
+	EntryCorner.Parent = Entry
+
+	local NameLabel = Instance.new("TextLabel")
+	NameLabel.Size = UDim2.new(1, -20, 0, 28)
+	NameLabel.Position = UDim2.new(0, 10, 0, 4)
+	NameLabel.BackgroundTransparency = 1
+	NameLabel.Text = "🍏 " .. name .. " Fruit"
+	NameLabel.TextColor3 = Color3.new(1, 1, 1)
+	NameLabel.TextSize = 16
+	NameLabel.Font = Enum.Font.GothamBold
+	NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	NameLabel.Parent = Entry
+
+	local DistanceLabel = Instance.new("TextLabel")
+	DistanceLabel.Size = UDim2.new(1, -20, 0, 18)
+	DistanceLabel.Position = UDim2.new(0, 10, 0, 32)
+	DistanceLabel.BackgroundTransparency = 1
+	DistanceLabel.Text = "Detectada"
+	DistanceLabel.TextColor3 = Color3.fromRGB(120, 220, 120)
+	DistanceLabel.TextSize = 12
+	DistanceLabel.Font = Enum.Font.Gotham
+	DistanceLabel.TextXAlignment = Enum.TextXAlignment.Left
+	DistanceLabel.Parent = Entry
+
+	return Entry, DistanceLabel
+end
+
+--========================================================
+-- OBTER POSIÇÃO DO OBJETO
+--========================================================
+
+local function GetPosition(object)
 	if object:IsA("BasePart") then
-
 		return object.Position
-
 	end
 
 	if object:IsA("Model") then
-
-		local success,result =
-			pcall(function()
-				return object:GetPivot().Position
-			end)
-
-		if success then
-			return result
-		end
-
+		return object:GetPivot().Position
 	end
 
 	return nil
-
 end
 
---============================================================
--- EXACT FRUIT CHECK
---============================================================
+--========================================================
+-- SCAN
+--========================================================
 
-local function getFruitName(object)
+local Detected = {}
 
-	if not object then
-		return nil
+local function ScanFruits()
+	local folder = workspace:FindFirstChild(FRUIT_FOLDER_NAME)
+
+	if not folder then
+		Status.Text = "Pasta Fruits não encontrada"
+		Status.TextColor3 = Color3.fromRGB(255, 180, 80)
+		return
 	end
 
-	if not object:IsA("Model")
-		and not object:IsA("BasePart") then
+	Status.Text = "Escaneando..."
+	Status.TextColor3 = Color3.fromRGB(180, 180, 180)
 
-		return nil
-	end
+	local Current = {}
 
-	-- O nome precisa ser EXATAMENTE:
-	--
-	-- Rocket Fruit
-	-- Dragon Fruit
-	-- Dough Fruit
-	-- etc.
+	for _, object in ipairs(folder:GetDescendants()) do
 
-	return FruitLookup[object.Name]
+		if IsFruit(object) then
 
-end
+			local fruitName = NormalizeName(object.Name)
 
---============================================================
--- NOTIFICATION
---============================================================
-
-local function notify(fruitName,distance,existing)
-
-	local prefix
-
-	if existing then
-		prefix = "📦 EXISTENTE"
-	else
-		prefix = "🆕 NOVO SPAWN"
-	end
-
-	local distanceText =
-		math.floor(distance)
-
-	local historyText =
-		prefix
-		.." • "
-		..fruitName
-		.." • "
-		..distanceText
-		.." studs"
-
-	addHistory(historyText)
-
-	pcall(function()
-
-		StarterGui:SetCore(
-			"SendNotification",
-			{
-				Title = "🍎 Fruit Notifier",
-
-				Text =
-					fruitName
-					.." • "
-					..distanceText
-					.." studs",
-
-				Duration = 5
+			Current[object] = {
+				Name = fruitName,
+				Object = object
 			}
-		)
+
+			if not Detected[object] then
+				Detected[object] = true
+
+				local entry, distanceLabel =
+					CreateFruitEntry(fruitName, object)
+
+				Detected[object] = {
+					Entry = entry,
+					DistanceLabel = distanceLabel,
+					Name = fruitName
+				}
+			end
+		end
+	end
+
+	-- Remover frutas que desapareceram
+	for object, data in pairs(Detected) do
+
+		if typeof(data) == "table" and data.Entry then
+
+			if not Current[object] then
+				if data.Entry then
+					data.Entry:Destroy()
+				end
+
+				Detected[object] = nil
+			end
+		end
+	end
+
+	local Count = 0
+
+	for object, data in pairs(Current) do
+		if data then
+			Count += 1
+		end
+	end
+
+	Status.Text = Count .. " fruta(s) detectada(s)"
+
+	Status.TextColor3 =
+		Count > 0
+		and Color3.fromRGB(100, 255, 120)
+		or Color3.fromRGB(180, 180, 180)
+
+	List.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		Layout.AbsoluteContentSize.Y + 10
+	)
+end
+
+--========================================================
+-- DISTÂNCIA
+--========================================================
+
+local function UpdateDistances()
+
+	local Character = Player.Character
+
+	if not Character then
+		return
+	end
+
+	local Root = Character:FindFirstChild("HumanoidRootPart")
+
+	if not Root then
+		return
+	end
+
+	for object, data in pairs(Detected) do
+
+		if typeof(data) == "table"
+			and data.Entry
+			and object
+			and object.Parent then
+
+			local position = GetPosition(object)
+
+			if position then
+
+				local distance =
+					(Root.Position - position).Magnitude
+
+				data.DistanceLabel.Text =
+					"📍 " .. math.floor(distance) .. " studs"
+
+			end
+		end
+	end
+end
+
+--========================================================
+-- LOOP
+--========================================================
+
+task.spawn(function()
+
+	while Gui.Parent do
+
+		ScanFruits()
+
+		task.wait(SCAN_INTERVAL)
+
+	end
+
+end)
+
+RunService.RenderStepped:Connect(function()
+
+	UpdateDistances()
+
+end)
+
+--========================================================
+-- DETECÇÃO IMEDIATA
+--========================================================
+
+local folder = workspace:FindFirstChild(FRUIT_FOLDER_NAME)
+
+if folder then
+
+	folder.DescendantAdded:Connect(function()
+
+		task.wait(0.1)
+
+		ScanFruits()
+
+	end)
+
+	folder.DescendantRemoving:Connect(function()
+
+		task.wait()
+
+		ScanFruits()
 
 	end)
 
 end
-
---============================================================
--- DETECTOR
---============================================================
-
-local Known = {}
-
-local firstScan = true
-
---============================================================
--- DETECTOR LOOP
---============================================================
-
-task.spawn(function()
-
-	-- GUI ganha prioridade
-	task.wait(1)
-
-	addHistory("✓ Detector iniciado")
-
-	while gui.Parent do
-
-		task.wait(CHECK_INTERVAL)
-
-		if not Enabled then
-			continue
-		end
-
-		local character =
-			player.Character
-
-		if not character then
-			continue
-		end
-
-		local root =
-			character:FindFirstChild(
-				"HumanoidRootPart"
-			)
-
-		if not root then
-			continue
-		end
-
-		-- Protege o loop contra erros
-		pcall(function()
-
-			for _,object in ipairs(
-				workspace:GetDescendants()
-			) do
-
-				local fruitName =
-					getFruitName(object)
-
-				if fruitName then
-
-					local position =
-						getPosition(object)
-
-					if position then
-
-						local distance =
-							(
-								root.Position
-								- position
-							).Magnitude
-
-						if distance <= RADIUS then
-
-							if not Known[object] then
-
-								Known[object] = {
-									Name = fruitName
-								}
-
-								notify(
-									fruitName,
-									distance,
-									firstScan
-								)
-
-							end
-
-						end
-
-					end
-
-				end
-
-			end
-
-		end)
-
-		firstScan = false
-
-	end
-
-end)
-
---============================================================
--- DESPAWN CLEANUP
---============================================================
-
-task.spawn(function()
-
-	while gui.Parent do
-
-		task.wait(2)
-
-		for object,data in pairs(Known) do
-
-			if object.Parent == nil then
-
-				Known[object] = nil
-
-			end
-
-		end
-
-	end
-
-end)
-
---============================================================
--- FINAL
---============================================================
-
-addHistory("✓ Sistema pronto")
-```
