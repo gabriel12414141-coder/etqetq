@@ -1,6 +1,8 @@
+```lua
 --============================================================
--- FRUIT NOTIFIER - COMPACT MOBILE TEST
--- GUI + DRAG + MINIMIZE
+-- DRAGON FRUIT NOTIFIER
+-- TESTE CONTROLADO
+-- LocalScript
 --============================================================
 
 local Players = game:GetService("Players")
@@ -13,8 +15,10 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 --============================================================
--- CONFIG
+-- CONFIGURAÇÃO
 --============================================================
+
+local FRUIT_NAME = "Dragon Fruit"
 
 local RADIUS = 9000
 local CHECK_INTERVAL = 0.5
@@ -22,57 +26,48 @@ local CHECK_INTERVAL = 0.5
 local Enabled = true
 local Minimized = false
 
-local Fruits = {
-	Rocket=true, Spin=true, Blade=true, Spring=true,
-	Bomb=true, Smoke=true, Spike=true, Flame=true,
-	Ice=true, Sand=true, Dark=true, Eagle=true,
-	Diamond=true, Light=true, Rubber=true, Ghost=true,
-	Magma=true, Quake=true, Buddha=true, Love=true,
-	Creation=true, Spider=true, Sound=true, Phoenix=true,
-	Portal=true, Lightning=true, Pain=true, Blizzard=true,
-	Gravity=true, Mammoth=true, ["T-Rex"]=true,
-	Dough=true, Shadow=true, Venom=true, Gas=true,
-	Spirit=true, Tiger=true, Yeti=true, Kitsune=true,
-	Control=true, Dragon=true
-}
+-- Coloque aqui um áudio autorizado pelo seu próprio jogo.
+local SOUND_ID = "rbxassetid://0"
 
 --============================================================
--- REMOVE ANTIGO
+-- LIMPAR GUI ANTERIOR
 --============================================================
 
-local old = playerGui:FindFirstChild("FruitNotifierCompact")
+local old = playerGui:FindFirstChild("DragonFruitNotifier")
 
 if old then
 	old:Destroy()
 end
 
 --============================================================
--- SCREEN GUI
+-- GUI
 --============================================================
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "FruitNotifierCompact"
+gui.Name = "DragonFruitNotifier"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = false
 gui.DisplayOrder = 999
 gui.Parent = playerGui
 
 --============================================================
--- MAIN
+-- JANELA
 --============================================================
 
 local main = Instance.new("Frame")
+
 main.Name = "Main"
 main.Size = UDim2.fromOffset(270,210)
 main.Position = UDim2.new(0.5,-135,0.65,0)
 
 main.BackgroundColor3 = Color3.fromRGB(18,18,24)
 main.BorderSizePixel = 0
+
 main.Parent = gui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0,10)
-corner.Parent = main
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0,10)
+mainCorner.Parent = main
 
 local stroke = Instance.new("UIStroke")
 stroke.Color = Color3.fromRGB(65,65,80)
@@ -84,9 +79,13 @@ stroke.Parent = main
 --============================================================
 
 local header = Instance.new("Frame")
+
+header.Name = "Header"
 header.Size = UDim2.new(1,0,0,38)
+
 header.BackgroundColor3 = Color3.fromRGB(25,25,34)
 header.BorderSizePixel = 0
+
 header.Parent = main
 
 local headerCorner = Instance.new("UICorner")
@@ -94,10 +93,11 @@ headerCorner.CornerRadius = UDim.new(0,10)
 headerCorner.Parent = header
 
 --============================================================
--- ÁREA EXCLUSIVA DE ARRASTE
+-- ÁREA DE ARRASTE
 --============================================================
 
 local dragArea = Instance.new("TextButton")
+
 dragArea.Name = "DragArea"
 
 dragArea.Size = UDim2.new(1,-72,1,0)
@@ -106,7 +106,7 @@ dragArea.Position = UDim2.fromOffset(0,0)
 dragArea.BackgroundTransparency = 1
 dragArea.BorderSizePixel = 0
 
-dragArea.Text = "🍎  Fruit Notifier"
+dragArea.Text = "🐉  Dragon Fruit"
 dragArea.TextColor3 = Color3.new(1,1,1)
 dragArea.TextSize = 14
 dragArea.Font = Enum.Font.GothamBold
@@ -121,6 +121,7 @@ dragArea.Parent = header
 local minimize = Instance.new("TextButton")
 
 minimize.Name = "Minimize"
+
 minimize.Size = UDim2.fromOffset(30,28)
 minimize.Position = UDim2.new(1,-67,0,5)
 
@@ -145,6 +146,7 @@ minimizeCorner.Parent = minimize
 local close = Instance.new("TextButton")
 
 close.Name = "Close"
+
 close.Size = UDim2.fromOffset(30,28)
 close.Position = UDim2.new(1,-34,0,5)
 
@@ -167,9 +169,14 @@ closeCorner.Parent = close
 --============================================================
 
 local content = Instance.new("Frame")
+
+content.Name = "Content"
+
 content.Size = UDim2.new(1,0,1,-38)
 content.Position = UDim2.fromOffset(0,38)
+
 content.BackgroundTransparency = 1
+
 content.Parent = main
 
 --============================================================
@@ -177,6 +184,8 @@ content.Parent = main
 --============================================================
 
 local status = Instance.new("TextButton")
+
+status.Name = "Status"
 
 status.Size = UDim2.new(1,-20,0,30)
 status.Position = UDim2.fromOffset(10,8)
@@ -201,6 +210,8 @@ statusCorner.Parent = status
 
 local history = Instance.new("ScrollingFrame")
 
+history.Name = "History"
+
 history.Size = UDim2.new(1,-20,1,-50)
 history.Position = UDim2.fromOffset(10,45)
 
@@ -221,6 +232,29 @@ layout.Padding = UDim.new(0,1)
 layout.Parent = history
 
 --============================================================
+-- SOM
+--============================================================
+
+local sound = Instance.new("Sound")
+
+sound.Name = "DragonFruitSound"
+sound.SoundId = SOUND_ID
+sound.Volume = 1
+
+sound.Parent = SoundService
+
+local function playSound()
+
+	if SOUND_ID == "rbxassetid://0" then
+		return
+	end
+
+	pcall(function()
+		sound:Play()
+	end)
+end
+
+--============================================================
 -- HISTÓRICO
 --============================================================
 
@@ -229,6 +263,7 @@ local function addHistory(text)
 	local label = Instance.new("TextLabel")
 
 	label.Size = UDim2.new(1,-6,0,22)
+
 	label.BackgroundTransparency = 1
 
 	label.Text = text
@@ -250,131 +285,17 @@ local function addHistory(text)
 			layout.AbsoluteContentSize.Y + 5
 		)
 
+		history.CanvasPosition = Vector2.new(
+			0,
+			math.max(0,layout.AbsoluteContentSize.Y)
+		)
+
 	end)
 end
 
 --============================================================
--- MINIMIZAR
+-- POSIÇÃO DO OBJETO
 --============================================================
-
-local expandedSize = main.Size
-
-minimize.Activated:Connect(function()
-
-	Minimized = not Minimized
-
-	if Minimized then
-
-		content.Visible = false
-
-		main.Size = UDim2.fromOffset(270,38)
-
-		minimize.Text = "+"
-
-	else
-
-		content.Visible = true
-
-		main.Size = expandedSize
-
-		minimize.Text = "−"
-
-	end
-
-end)
-
---============================================================
--- FECHAR
---============================================================
-
-close.Activated:Connect(function()
-	gui:Destroy()
-end)
-
---============================================================
--- TOGGLE
---============================================================
-
-status.Activated:Connect(function()
-
-	Enabled = not Enabled
-
-	if Enabled then
-
-		status.Text = "● ATIVO  •  9000 studs"
-		status.TextColor3 = Color3.fromRGB(80,255,120)
-
-	else
-
-		status.Text = "● DESATIVADO"
-		status.TextColor3 = Color3.fromRGB(255,80,80)
-
-	end
-
-end)
-
---============================================================
--- DRAG SYSTEM
--- FUNCIONA COM TOUCH E MOUSE
---============================================================
-
-local dragging = false
-local dragStart
-local startPosition
-
-dragArea.InputBegan:Connect(function(input)
-
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-		dragging = true
-
-		dragStart = input.Position
-		startPosition = main.Position
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-
-	if not dragging then
-		return
-	end
-
-	if input.UserInputType ~= Enum.UserInputType.MouseMovement
-		and input.UserInputType ~= Enum.UserInputType.Touch then
-
-		return
-	end
-
-	local delta = input.Position - dragStart
-
-	main.Position = UDim2.new(
-		startPosition.X.Scale,
-		startPosition.X.Offset + delta.X,
-
-		startPosition.Y.Scale,
-		startPosition.Y.Offset + delta.Y
-	)
-
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-		dragging = false
-	end
-
-end)
-
---============================================================
--- DETECTOR
---============================================================
-
-local Known = {}
-local firstScan = true
-local timer = 0
 
 local function getPosition(object)
 
@@ -389,24 +310,30 @@ local function getPosition(object)
 	return nil
 end
 
-local function validFruit(object)
+--============================================================
+-- DETECTOR EXATO
+--============================================================
 
+local function isDragonFruit(object)
+
+	-- Somente Model ou BasePart
 	if not object:IsA("Model")
 		and not object:IsA("BasePart") then
 
 		return false
 	end
 
-	if not Fruits[object.Name] then
+	-- Nome EXATAMENTE igual
+	if object.Name ~= FRUIT_NAME then
 		return false
 	end
 
-	-- Não aceita uma fruta dentro de outra fruta
+	-- Evita detectar objeto interno de outro Dragon Fruit
 	local parent = object.Parent
 
 	while parent and parent ~= workspace do
 
-		if Fruits[parent.Name] then
+		if parent.Name == FRUIT_NAME then
 			return false
 		end
 
@@ -416,20 +343,34 @@ local function validFruit(object)
 	return true
 end
 
-local function notify(name,distance,existing)
+--============================================================
+-- REGISTRO
+--============================================================
 
-	local typeText
+local Known = {}
+
+local firstScan = true
+local timer = 0
+
+--============================================================
+-- NOTIFICAÇÃO
+--============================================================
+
+local function notify(distance,existing)
+
+	local prefix
 
 	if existing then
-		typeText = "EXISTENTE"
+		prefix = "📦 EXISTENTE"
 	else
-		typeText = "NOVO SPAWN"
+		prefix = "🆕 NOVO SPAWN"
+		playSound()
 	end
 
 	addHistory(
-		(typeText == "NOVO SPAWN" and "🆕 " or "📦 ")
-		..name
-		.." • "
+		prefix
+		.."  Dragon Fruit"
+		.."  •  "
 		..math.floor(distance)
 		.." studs"
 	)
@@ -439,14 +380,20 @@ local function notify(name,distance,existing)
 		StarterGui:SetCore(
 			"SendNotification",
 			{
-				Title = "🍎 "..typeText,
-				Text = name.." • "..math.floor(distance).." studs",
+				Title = "🐉 "..prefix,
+				Text = "Dragon Fruit • "
+					..math.floor(distance)
+					.." studs",
 				Duration = 4
 			}
 		)
 
 	end)
 end
+
+--============================================================
+-- DETECÇÃO
+--============================================================
 
 RunService.Heartbeat:Connect(function(delta)
 
@@ -477,7 +424,7 @@ RunService.Heartbeat:Connect(function(delta)
 
 	for _,object in ipairs(workspace:GetDescendants()) do
 
-		if validFruit(object) then
+		if isDragonFruit(object) then
 
 			local position = getPosition(object)
 
@@ -491,11 +438,10 @@ RunService.Heartbeat:Connect(function(delta)
 					if not Known[object] then
 
 						Known[object] = {
-							Name = object.Name
+							FirstSeen = os.time()
 						}
 
 						notify(
-							object.Name,
 							distance,
 							firstScan
 						)
@@ -517,14 +463,12 @@ task.spawn(function()
 
 	while task.wait(1) do
 
-		for object,data in pairs(Known) do
+		for object in pairs(Known) do
 
 			if object.Parent == nil then
 
 				addHistory(
-					"🗑️ "
-					..data.Name
-					.." • DESPAWN"
+					"🗑️ Dragon Fruit • DESPAWN"
 				)
 
 				Known[object] = nil
@@ -534,9 +478,154 @@ task.spawn(function()
 end)
 
 --============================================================
+-- ATIVAR / DESATIVAR
+--============================================================
+
+status.Activated:Connect(function()
+
+	Enabled = not Enabled
+
+	if Enabled then
+
+		status.Text = "● ATIVO  •  9000 studs"
+		status.TextColor3 =
+			Color3.fromRGB(80,255,120)
+
+	else
+
+		status.Text = "● DESATIVADO"
+		status.TextColor3 =
+			Color3.fromRGB(255,80,80)
+
+	end
+end)
+
+--============================================================
+-- MINIMIZAR
+--============================================================
+
+local expandedSize = main.Size
+
+minimize.Activated:Connect(function()
+
+	Minimized = not Minimized
+
+	if Minimized then
+
+		content.Visible = false
+
+		main.Size =
+			UDim2.fromOffset(270,38)
+
+		minimize.Text = "+"
+
+	else
+
+		content.Visible = true
+
+		main.Size = expandedSize
+
+		minimize.Text = "−"
+
+	end
+end)
+
+--============================================================
+-- FECHAR
+--============================================================
+
+close.Activated:Connect(function()
+
+	gui:Destroy()
+
+end)
+
+--============================================================
+-- ARRASTAR
+-- TOUCH + MOUSE
+--============================================================
+
+local dragging = false
+local dragStart
+local startPosition
+
+dragArea.InputBegan:Connect(function(input)
+
+	if input.UserInputType ==
+		Enum.UserInputType.MouseButton1
+		or input.UserInputType ==
+		Enum.UserInputType.Touch then
+
+		dragging = true
+
+		dragStart = input.Position
+		startPosition = main.Position
+
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+	if not dragging then
+		return
+	end
+
+	if input.UserInputType ~=
+		Enum.UserInputType.MouseMovement
+		and input.UserInputType ~=
+		Enum.UserInputType.Touch then
+
+		return
+	end
+
+	local delta =
+		input.Position - dragStart
+
+	main.Position = UDim2.new(
+		startPosition.X.Scale,
+		startPosition.X.Offset + delta.X,
+
+		startPosition.Y.Scale,
+		startPosition.Y.Offset + delta.Y
+	)
+
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+
+	if input.UserInputType ==
+		Enum.UserInputType.MouseButton1
+		or input.UserInputType ==
+		Enum.UserInputType.Touch then
+
+		dragging = false
+
+	end
+end)
+
+--============================================================
 -- INICIALIZAÇÃO
 --============================================================
 
-addHistory("✓ Detector iniciado")
+addHistory("✓ Dragon Fruit detector iniciado")
+addHistory("✓ Procurando nome exato: Dragon Fruit")
 addHistory("✓ Raio: 9000 studs")
-addHistory("✓ Sistema pronto")
+```
+
+### O detector agora é estrito
+
+Ele **não** considera:
+
+* `Dragon`
+* `DragonFruit`
+* `Dragon Fruit Model`
+* `Dragon Fruit Handle`
+* `Dragon Fruit Tool`
+
+Ele só considera um `Model` ou `BasePart` cujo nome seja exatamente:
+
+```text
+Dragon Fruit
+```
+
+E o GUI continua podendo ser **arrastado pelo título** e **minimizado pelo `−`**.
