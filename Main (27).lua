@@ -23,7 +23,7 @@ local camera = workspace.CurrentCamera
 -- CONFIGURAÇÕES
 -- ============================================
 
-local TAG_FRUTA = "Fruta"          -- tag usada nos objetos de fruta
+local TAG_FRUTA = "fruit"          -- tag usada nos objetos de fruta
 local TAG_ILHA = "Ilha"            -- tag opcional usada nos models das ilhas
 local DISTANCIA_VISUAL_3D = 150    -- só mostra billboard/highlight dentro desse raio
 local DISTANCIA_MAXIMA_RADAR = 100000 -- radar funciona no mapa inteiro
