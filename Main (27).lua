@@ -1,5 +1,5 @@
 --============================================================
--- FRUIT NOTIFIER - COMPACT MOBILE
+-- FRUIT NOTIFIER - COMPACT / CORRIGIDO
 -- TESTE CONTROLADO - ROBLOX STUDIO
 -- LocalScript
 --============================================================
@@ -22,25 +22,55 @@ local CHECK_INTERVAL = 0.5
 local Enabled = true
 local Minimized = false
 
--- Coloque um SoundId autorizado pelo seu jogo.
+-- Som autorizado no seu próprio jogo
 local SOUND_ID = "rbxassetid://0"
 
 local Fruits = {
-	Rocket=true, Spin=true, Blade=true, Spring=true,
-	Bomb=true, Smoke=true, Spike=true, Flame=true,
-	Ice=true, Sand=true, Dark=true, Eagle=true,
-	Diamond=true, Light=true, Rubber=true, Ghost=true,
-	Magma=true, Quake=true, Buddha=true, Love=true,
-	Creation=true, Spider=true, Sound=true, Phoenix=true,
-	Portal=true, Lightning=true, Pain=true, Blizzard=true,
-	Gravity=true, Mammoth=true, ["T-Rex"]=true,
-	Dough=true, Shadow=true, Venom=true, Gas=true,
-	Spirit=true, Tiger=true, Yeti=true, Kitsune=true,
-	Control=true, Dragon=true
+	Rocket=true,
+	Spin=true,
+	Blade=true,
+	Spring=true,
+	Bomb=true,
+	Smoke=true,
+	Spike=true,
+	Flame=true,
+	Ice=true,
+	Sand=true,
+	Dark=true,
+	Eagle=true,
+	Diamond=true,
+	Light=true,
+	Rubber=true,
+	Ghost=true,
+	Magma=true,
+	Quake=true,
+	Buddha=true,
+	Love=true,
+	Creation=true,
+	Spider=true,
+	Sound=true,
+	Phoenix=true,
+	Portal=true,
+	Lightning=true,
+	Pain=true,
+	Blizzard=true,
+	Gravity=true,
+	Mammoth=true,
+	["T-Rex"]=true,
+	Dough=true,
+	Shadow=true,
+	Venom=true,
+	Gas=true,
+	Spirit=true,
+	Tiger=true,
+	Yeti=true,
+	Kitsune=true,
+	Control=true,
+	Dragon=true
 }
 
 --============================================================
--- REMOVE GUI ANTERIOR
+-- REMOVE GUI ANTIGO
 --============================================================
 
 local old = playerGui:FindFirstChild("CompactFruitNotifier")
@@ -59,36 +89,41 @@ gui.ResetOnSpawn = false
 gui.DisplayOrder = 100
 gui.Parent = playerGui
 
--- Janela pequena
 local main = Instance.new("Frame")
+main.Name = "Main"
+
 main.Size = UDim2.new(0.72, 0, 0, 245)
-main.Position = UDim2.new(0.14, 0, 0.68, 0)
+main.Position = UDim2.new(0.14, 0, 0.65, 0)
+
 main.BackgroundColor3 = Color3.fromRGB(18,18,24)
 main.BorderSizePixel = 0
+main.Active = true
 main.Parent = gui
 
-local constraint = Instance.new("UISizeConstraint")
-constraint.MinSize = Vector2.new(250,80)
-constraint.MaxSize = Vector2.new(360,280)
-constraint.Parent = main
+local sizeConstraint = Instance.new("UISizeConstraint")
+sizeConstraint.MinSize = Vector2.new(250,80)
+sizeConstraint.MaxSize = Vector2.new(360,280)
+sizeConstraint.Parent = main
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0,10)
-corner.Parent = main
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0,10)
+mainCorner.Parent = main
 
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(60,60,75)
-stroke.Thickness = 1
-stroke.Parent = main
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(60,60,75)
+mainStroke.Thickness = 1
+mainStroke.Parent = main
 
 --============================================================
 -- HEADER
 --============================================================
 
 local header = Instance.new("Frame")
+header.Name = "DragArea"
 header.Size = UDim2.new(1,0,0,40)
 header.BackgroundColor3 = Color3.fromRGB(25,25,34)
 header.BorderSizePixel = 0
+header.Active = true
 header.Parent = main
 
 local headerCorner = Instance.new("UICorner")
@@ -104,6 +139,7 @@ title.TextColor3 = Color3.new(1,1,1)
 title.TextSize = 15
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
+title.Active = false
 title.Parent = header
 
 --============================================================
@@ -119,6 +155,7 @@ minimize.Text = "−"
 minimize.TextColor3 = Color3.new(1,1,1)
 minimize.TextSize = 18
 minimize.Font = Enum.Font.GothamBold
+minimize.Active = true
 minimize.Parent = header
 
 local minCorner = Instance.new("UICorner")
@@ -138,6 +175,7 @@ close.Text = "×"
 close.TextColor3 = Color3.new(1,1,1)
 close.TextSize = 18
 close.Font = Enum.Font.GothamBold
+close.Active = true
 close.Parent = header
 
 local closeCorner = Instance.new("UICorner")
@@ -158,7 +196,7 @@ content.Parent = main
 -- STATUS
 --============================================================
 
-local status = Instance.new("TextLabel")
+local status = Instance.new("TextButton")
 status.Size = UDim2.new(1,-20,0,28)
 status.Position = UDim2.fromOffset(10,7)
 status.BackgroundColor3 = Color3.fromRGB(28,28,37)
@@ -235,7 +273,8 @@ local function addHistory(text)
 	task.defer(function()
 
 		history.CanvasSize = UDim2.new(
-			0,0,
+			0,
+			0,
 			0,
 			layout.AbsoluteContentSize.Y + 5
 		)
@@ -266,7 +305,38 @@ local function getPosition(object)
 end
 
 --============================================================
--- ESTADO
+-- VERIFICAR SE É UM OBJETO DE FRUTA VÁLIDO
+--============================================================
+
+local function isValidFruitObject(object)
+
+	-- Somente Model ou BasePart
+	if not object:IsA("Model") and not object:IsA("BasePart") then
+		return false
+	end
+
+	-- Nome precisa estar na whitelist
+	if not Fruits[object.Name] then
+		return false
+	end
+
+	-- Evita detectar partes internas de outra fruta.
+	local ancestor = object.Parent
+
+	while ancestor and ancestor ~= workspace do
+
+		if Fruits[ancestor.Name] then
+			return false
+		end
+
+		ancestor = ancestor.Parent
+	end
+
+	return true
+end
+
+--============================================================
+-- DADOS DAS FRUTAS
 --============================================================
 
 local Known = {}
@@ -292,7 +362,7 @@ local function notify(name,distance,existing)
 		name ..
 		"  •  " ..
 		math.floor(distance) ..
-		"m"
+		" studs"
 	)
 
 	pcall(function()
@@ -307,7 +377,7 @@ local function notify(name,distance,existing)
 end
 
 --============================================================
--- DETECTOR
+-- DETECÇÃO
 --============================================================
 
 local firstScan = true
@@ -339,16 +409,17 @@ RunService.Heartbeat:Connect(function(delta)
 		return
 	end
 
+	-- Busca somente candidatos válidos
 	for _,object in ipairs(workspace:GetDescendants()) do
 
-		if Fruits[object.Name] then
+		if isValidFruitObject(object) then
 
 			local position = getPosition(object)
 
 			if position then
 
 				local distance =
-					(root.Position-position).Magnitude
+					(root.Position - position).Magnitude
 
 				if distance <= RADIUS then
 
@@ -356,7 +427,7 @@ RunService.Heartbeat:Connect(function(delta)
 
 						Known[object] = {
 							Name = object.Name,
-							SpawnTime = os.time()
+							FirstSeen = os.time()
 						}
 
 						notify(
@@ -364,6 +435,7 @@ RunService.Heartbeat:Connect(function(delta)
 							distance,
 							firstScan
 						)
+
 					end
 				end
 			end
@@ -396,7 +468,7 @@ task.spawn(function()
 end)
 
 --============================================================
--- TOGGLE PELO STATUS
+-- ATIVAR / DESATIVAR
 --============================================================
 
 status.Activated:Connect(function()
@@ -429,9 +501,12 @@ minimize.Activated:Connect(function()
 	if Minimized then
 
 		content.Visible = false
+
 		main.Size = UDim2.new(
-			0.72,0,
-			0,40
+			0.72,
+			0,
+			0,
+			40
 		)
 
 		minimize.Text = "+"
@@ -440,8 +515,8 @@ minimize.Activated:Connect(function()
 
 		content.Visible = true
 		main.Size = normalSize
-
 		minimize.Text = "−"
+
 	end
 end)
 
@@ -454,32 +529,18 @@ close.Activated:Connect(function()
 end)
 
 --============================================================
--- ARRASTAR: TOUCH + MOUSE
+-- ARRASTAR CORRIGIDO
+-- MOUSE + TOUCH
 --============================================================
 
 local dragging = false
-local dragStart
-local startPosition
+local dragInput = nil
+local dragStart = nil
+local startPosition = nil
 
-header.InputBegan:Connect(function(input)
+local function updateDrag(input)
 
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-		dragging = true
-		dragStart = input.Position
-		startPosition = main.Position
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-
-	if not dragging then
-		return
-	end
-
-	if input.UserInputType ~= Enum.UserInputType.MouseMovement
-		and input.UserInputType ~= Enum.UserInputType.Touch then
+	if not dragStart or not startPosition then
 		return
 	end
 
@@ -491,6 +552,41 @@ UserInputService.InputChanged:Connect(function(input)
 		startPosition.Y.Scale,
 		startPosition.Y.Offset + delta.Y
 	)
+end
+
+header.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPosition = main.Position
+		dragInput = input
+	end
+end)
+
+header.InputChanged:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+	if not dragging then
+		return
+	end
+
+	if input == dragInput
+		or input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		updateDrag(input)
+	end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
@@ -499,6 +595,7 @@ UserInputService.InputEnded:Connect(function(input)
 		or input.UserInputType == Enum.UserInputType.Touch then
 
 		dragging = false
+		dragInput = nil
 	end
 end)
 
@@ -508,4 +605,5 @@ end)
 
 addHistory("✓ Detector iniciado")
 addHistory("✓ Raio: 9000 studs")
-addHistory("✓ Frutas existentes serão registradas")
+addHistory("✓ Detector de falsos objetos corrigido")
+addHistory("✓ Arraste por toque/mouse ativo")
