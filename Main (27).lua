@@ -156,38 +156,48 @@ radarGui.DisplayOrder = 5
 radarGui.Parent = jogadorLocal:WaitForChild("PlayerGui")
 
 -- ============================================
--- ARRASTAR O MENU
+-- ARRASTAR O MENU (versão robusta com AbsolutePosition)
 -- ============================================
 
+frame.Active = true
+titulo.Active = true
+
 local arrastando = false
-local inputInicial
-local posicaoInicial
+local deslocamento = Vector2.new(0, 0)
+
+local function iniciarArrasto(input)
+    arrastando = true
+    deslocamento = Vector2.new(
+        frame.AbsolutePosition.X - input.Position.X,
+        frame.AbsolutePosition.Y - input.Position.Y
+    )
+end
+
+local function pararArrasto()
+    arrastando = false
+end
 
 titulo.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1
        or input.UserInputType == Enum.UserInputType.Touch then
-        arrastando = true
-        inputInicial = input
-        posicaoInicial = frame.Position
+        iniciarArrasto(input)
+    end
+end)
 
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                arrastando = false
-            end
-        end)
+-- Conexões globais (fora do titulo) evitam duplicar listeners a cada clique
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+       or input.UserInputType == Enum.UserInputType.Touch then
+        pararArrasto()
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
     if arrastando and (input.UserInputType == Enum.UserInputType.MouseMovement
                         or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - inputInicial.Position
-        frame.Position = UDim2.new(
-            posicaoInicial.X.Scale,
-            posicaoInicial.X.Offset + delta.X,
-            posicaoInicial.Y.Scale,
-            posicaoInicial.Y.Offset + delta.Y
-        )
+        local novaPosX = input.Position.X + deslocamento.X
+        local novaPosY = input.Position.Y + deslocamento.Y
+        frame.Position = UDim2.new(0, novaPosX, 0, novaPosY)
     end
 end)
 
