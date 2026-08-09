@@ -1,5 +1,5 @@
 --========================================================
--- FRUIT FINDER - VERSÃO COMPLETA
+-- FRUIT FINDER - VERSÃO FINAL
 -- Para o seu próprio jogo Roblox
 -- Coloque em ServerScriptService
 --========================================================
@@ -62,7 +62,6 @@ local FRUITS = {
 	["Venom Fruit"] = {"VenomFruit", "Venom"},
 	["Control Fruit"] = {"ControlFruit", "Control"},
 	["Spirit Fruit"] = {"SpiritFruit", "Spirit"},
-
 	["Gas Fruit"] = {"GasFruit", "Gas"},
 	["Yeti Fruit"] = {"YetiFruit", "Yeti"},
 	["Leopard Fruit"] = {"LeopardFruit", "Leopard"},
@@ -71,7 +70,7 @@ local FRUITS = {
 }
 
 --========================================================
--- NORMALIZAR
+-- NORMALIZAÇÃO
 --========================================================
 
 local function normalize(text)
@@ -88,31 +87,20 @@ local function normalize(text)
 end
 
 --========================================================
--- IDENTIFICAR PELO NOME
+-- IDENTIFICAÇÃO POR NOME
 --========================================================
 
 local function identifyByName(fruit)
 
 	local names = {}
 
-	table.insert(
-		names,
-		fruit.Name
-	)
+	table.insert(names, fruit.Name)
 
-	for _, object in ipairs(
-		fruit:GetDescendants()
-	) do
-
-		table.insert(
-			names,
-			object.Name
-		)
+	for _, object in ipairs(fruit:GetDescendants()) do
+		table.insert(names, object.Name)
 	end
 
-	for displayName, aliases in pairs(
-		FRUITS
-	) do
+	for displayName, aliases in pairs(FRUITS) do
 
 		for _, objectName in ipairs(names) do
 
@@ -134,30 +122,20 @@ local function identifyByName(fruit)
 end
 
 --========================================================
--- IDENTIFICAR POR ATTRIBUTES
+-- IDENTIFICAÇÃO POR ATTRIBUTES
 --========================================================
 
 local function identifyByAttributes(fruit)
 
-	local objects = {
-		fruit
-	}
+	local objects = {fruit}
 
-	for _, object in ipairs(
-		fruit:GetDescendants()
-	) do
-
-		table.insert(
-			objects,
-			object
-		)
+	for _, object in ipairs(fruit:GetDescendants()) do
+		table.insert(objects, object)
 	end
 
 	for _, object in ipairs(objects) do
 
-		for key, value in pairs(
-			object:GetAttributes()
-		) do
+		for key, value in pairs(object:GetAttributes()) do
 
 			local keyText =
 				normalize(key)
@@ -165,9 +143,7 @@ local function identifyByAttributes(fruit)
 			local valueText =
 				normalize(value)
 
-			for displayName, aliases in pairs(
-				FRUITS
-			) do
+			for displayName, aliases in pairs(FRUITS) do
 
 				for _, alias in ipairs(aliases) do
 
@@ -188,30 +164,30 @@ local function identifyByAttributes(fruit)
 end
 
 --========================================================
--- IDENTIFICAÇÃO
+-- IDENTIFICAÇÃO FINAL
 --========================================================
 
 local function identifyFruit(fruit)
 
-	local nameResult =
+	local result =
 		identifyByName(fruit)
 
-	if nameResult then
-		return nameResult
+	if result then
+		return result
 	end
 
-	local attributeResult =
+	result =
 		identifyByAttributes(fruit)
 
-	if attributeResult then
-		return attributeResult
+	if result then
+		return result
 	end
 
 	return "Fruit"
 end
 
 --========================================================
--- PARTE PRINCIPAL DA FRUTA
+-- ENCONTRAR PARTE DA FRUTA
 --========================================================
 
 local function getFruitPart(fruit)
@@ -249,6 +225,9 @@ local function createFruitDisplay(fruit)
 		return
 	end
 
+	local name =
+		identifyFruit(fruit)
+
 	local old =
 		fruit:FindFirstChild(
 			"FruitNameDisplay"
@@ -259,9 +238,7 @@ local function createFruitDisplay(fruit)
 	end
 
 	local billboard =
-		Instance.new(
-			"BillboardGui"
-		)
+		Instance.new("BillboardGui")
 
 	billboard.Name =
 		"FruitNameDisplay"
@@ -272,7 +249,7 @@ local function createFruitDisplay(fruit)
 	billboard.Size =
 		UDim2.fromOffset(
 			180,
-			45
+			40
 		)
 
 	billboard.StudsOffset =
@@ -295,9 +272,7 @@ local function createFruitDisplay(fruit)
 		fruit
 
 	local label =
-		Instance.new(
-			"TextLabel"
-		)
+		Instance.new("TextLabel")
 
 	label.Size =
 		UDim2.fromScale(
@@ -309,8 +284,7 @@ local function createFruitDisplay(fruit)
 		1
 
 	label.Text =
-		"🍎 " ..
-		identifyFruit(fruit)
+		"🍎 " .. name
 
 	label.TextColor3 =
 		Color3.new(
@@ -347,9 +321,7 @@ local function getFruits()
 
 	local fruits = {}
 
-	for _, object in ipairs(
-		workspace:GetDescendants()
-	) do
+	for _, object in ipairs(workspace:GetDescendants()) do
 
 		if object:IsA("Model")
 			and object.Name == "Fruit" then
@@ -365,7 +337,7 @@ local function getFruits()
 end
 
 --========================================================
--- GUI
+-- CRIAR GUI
 --========================================================
 
 local function createGui(player)
@@ -385,9 +357,7 @@ local function createGui(player)
 	end
 
 	local gui =
-		Instance.new(
-			"ScreenGui"
-		)
+		Instance.new("ScreenGui")
 
 	gui.Name =
 		"FruitFinder"
@@ -403,9 +373,7 @@ local function createGui(player)
 	--====================================================
 
 	local main =
-		Instance.new(
-			"Frame"
-		)
+		Instance.new("Frame")
 
 	main.Size =
 		UDim2.fromOffset(
@@ -435,18 +403,16 @@ local function createGui(player)
 	main.Parent =
 		gui
 
-	local corner =
-		Instance.new(
-			"UICorner"
-		)
+	local mainCorner =
+		Instance.new("UICorner")
 
-	corner.CornerRadius =
+	mainCorner.CornerRadius =
 		UDim.new(
 			0,
 			10
 		)
 
-	corner.Parent =
+	mainCorner.Parent =
 		main
 
 	--====================================================
@@ -454,9 +420,7 @@ local function createGui(player)
 	--====================================================
 
 	local header =
-		Instance.new(
-			"Frame"
-		)
+		Instance.new("Frame")
 
 	header.Size =
 		UDim2.new(
@@ -482,15 +446,29 @@ local function createGui(player)
 	header.Parent =
 		main
 
-	local title =
-		Instance.new(
-			"TextLabel"
+	local headerCorner =
+		Instance.new("UICorner")
+
+	headerCorner.CornerRadius =
+		UDim.new(
+			0,
+			10
 		)
+
+	headerCorner.Parent =
+		header
+
+	--====================================================
+	-- TÍTULO
+	--====================================================
+
+	local title =
+		Instance.new("TextLabel")
 
 	title.Size =
 		UDim2.new(
 			1,
-			-90,
+			-100,
 			1,
 			0
 		)
@@ -531,9 +509,7 @@ local function createGui(player)
 	--====================================================
 
 	local counter =
-		Instance.new(
-			"TextLabel"
-		)
+		Instance.new("TextLabel")
 
 	counter.Size =
 		UDim2.fromOffset(
@@ -576,9 +552,7 @@ local function createGui(player)
 	--====================================================
 
 	local minimize =
-		Instance.new(
-			"TextButton"
-		)
+		Instance.new("TextButton")
 
 	minimize.Size =
 		UDim2.fromOffset(
@@ -621,9 +595,7 @@ local function createGui(player)
 	--====================================================
 
 	local list =
-		Instance.new(
-			"ScrollingFrame"
-		)
+		Instance.new("ScrollingFrame")
 
 	list.Position =
 		UDim2.fromOffset(
@@ -652,9 +624,7 @@ local function createGui(player)
 		main
 
 	local layout =
-		Instance.new(
-			"UIListLayout"
-		)
+		Instance.new("UIListLayout")
 
 	layout.Padding =
 		UDim.new(
@@ -669,73 +639,98 @@ local function createGui(player)
 		list
 
 	--====================================================
-	-- ARRASTAR
+	-- ARRASTAR - CORRIGIDO
 	--====================================================
 
-	local dragging =
-		false
+	local dragging = false
+	local dragStart = nil
+	local startPosition = nil
+	local dragInput = nil
 
-	local dragStart
+	local function updateDrag(input)
 
-	local startPosition
+		local delta =
+			input.Position -
+			dragStart
 
-	header.InputBegan:Connect(
-		function(input)
+		main.Position =
+			UDim2.new(
+				startPosition.X.Scale,
+				startPosition.X.Offset + delta.X,
 
-			if input.UserInputType ==
-				Enum.UserInputType.MouseButton1 then
+				startPosition.Y.Scale,
+				startPosition.Y.Offset + delta.Y
+			)
+	end
 
-				dragging =
-					true
+	header.InputBegan:Connect(function(input)
 
-				dragStart =
-					input.Position
+		if input.UserInputType ==
+			Enum.UserInputType.MouseButton1
+			or input.UserInputType ==
+			Enum.UserInputType.Touch then
 
-				startPosition =
-					main.Position
-			end
-		end
-	)
+			dragging = true
 
-	header.InputEnded:Connect(
-		function(input)
+			dragStart =
+				input.Position
 
-			if input.UserInputType ==
-				Enum.UserInputType.MouseButton1 then
-
-				dragging =
-					false
-			end
-		end
-	)
-
-	UserInputService.InputChanged:Connect(
-		function(input)
-
-			if not dragging then
-				return
-			end
+			startPosition =
+				main.Position
 
 			if input.UserInputType ==
-				Enum.UserInputType.MouseMovement then
+				Enum.UserInputType.Touch then
 
-				local delta =
-					input.Position -
-					dragStart
+				dragInput =
+					input
+			else
 
-				main.Position =
-					UDim2.new(
-						startPosition.X.Scale,
-						startPosition.X.Offset
-							+ delta.X,
-
-						startPosition.Y.Scale,
-						startPosition.Y.Offset
-							+ delta.Y
-					)
+				dragInput =
+					nil
 			end
 		end
-	)
+	end)
+
+	header.InputChanged:Connect(function(input)
+
+		if input.UserInputType ==
+			Enum.UserInputType.MouseMovement
+			or input.UserInputType ==
+			Enum.UserInputType.Touch then
+
+			dragInput =
+				input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+
+		if not dragging then
+			return
+		end
+
+		if input == dragInput
+			or input.UserInputType ==
+			Enum.UserInputType.MouseMovement then
+
+			updateDrag(input)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+
+		if input.UserInputType ==
+			Enum.UserInputType.MouseButton1
+			or input.UserInputType ==
+			Enum.UserInputType.Touch then
+
+			dragging =
+				false
+
+			dragInput =
+				nil
+		end
+	end)
 
 	--====================================================
 	-- MINIMIZAR
@@ -744,52 +739,48 @@ local function createGui(player)
 	local minimized =
 		false
 
-	minimize.MouseButton1Click:Connect(
-		function()
+	minimize.MouseButton1Click:Connect(function()
 
-			minimized =
-				not minimized
+		minimized =
+			not minimized
 
-			if minimized then
+		if minimized then
 
-				list.Visible =
-					false
+			list.Visible =
+				false
 
-				main.Size =
-					UDim2.fromOffset(
-						360,
-						55
-					)
+			main.Size =
+				UDim2.fromOffset(
+					360,
+					55
+				)
 
-				minimize.Text =
-					"+"
+			minimize.Text =
+				"+"
 
-			else
+		else
 
-				list.Visible =
-					true
+			list.Visible =
+				true
 
-				main.Size =
-					UDim2.fromOffset(
-						360,
-						410
-					)
+			main.Size =
+				UDim2.fromOffset(
+					360,
+					410
+				)
 
-				minimize.Text =
-					"−"
-			end
+			minimize.Text =
+				"−"
 		end
-	)
+	end)
 
 	--====================================================
-	-- ATUALIZAR
+	-- ATUALIZAÇÃO
 	--====================================================
 
 	local function update()
 
-		for _, child in ipairs(
-			list:GetChildren()
-		) do
+		for _, child in ipairs(list:GetChildren()) do
 
 			if child:IsA("Frame")
 				or child:IsA("TextLabel") then
@@ -806,20 +797,16 @@ local function createGui(player)
 				#fruits
 			)
 
-		for _, fruit in ipairs(
-			fruits
-		) do
+		for _, fruit in ipairs(fruits) do
 
-			-- Nome sobre a fruta
+			-- Texto sobre a fruta
 			createFruitDisplay(
 				fruit
 			)
 
-			-- Item no painel
+			-- Item do painel
 			local item =
-				Instance.new(
-					"Frame"
-				)
+				Instance.new("Frame")
 
 			item.Size =
 				UDim2.new(
@@ -843,9 +830,7 @@ local function createGui(player)
 				list
 
 			local itemCorner =
-				Instance.new(
-					"UICorner"
-				)
+				Instance.new("UICorner")
 
 			itemCorner.CornerRadius =
 				UDim.new(
@@ -857,9 +842,7 @@ local function createGui(player)
 				item
 
 			local label =
-				Instance.new(
-					"TextLabel"
-				)
+				Instance.new("TextLabel")
 
 			label.Size =
 				UDim2.new(
@@ -909,50 +892,45 @@ local function createGui(player)
 				0,
 				0,
 				0,
-				layout.AbsoluteContentSize.Y
-					+ 10
+				layout.AbsoluteContentSize.Y + 10
 			)
 	end
 
-	task.spawn(
-		function()
+	--====================================================
+	-- LOOP
+	--====================================================
 
-			while gui.Parent do
+	task.spawn(function()
 
-				if not minimized then
-					update()
-				end
+		while gui.Parent do
 
-				task.wait(
-					UPDATE_TIME
-				)
+			if not minimized then
+				update()
 			end
+
+			task.wait(
+				UPDATE_TIME
+			)
 		end
-	)
+	end)
 end
 
 --========================================================
 -- JOGADORES
 --========================================================
 
-Players.PlayerAdded:Connect(
-	function(player)
+Players.PlayerAdded:Connect(function(player)
 
-		task.spawn(
-			function()
-				createGui(player)
-			end
-		)
-	end
-)
+	task.spawn(function()
+		createGui(player)
+	end)
+end)
 
 for _, player in ipairs(
 	Players:GetPlayers()
 ) do
 
-	task.spawn(
-		function()
-			createGui(player)
-		end
-	)
+	task.spawn(function()
+		createGui(player)
+	end)
 end
