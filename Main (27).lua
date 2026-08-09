@@ -1,7 +1,10 @@
 --============================================================
--- FRUIT ADMIN NOTIFIER
+-- FRUIT ADMIN NOTIFIER - FINAL
 -- LocalScript
 -- StarterPlayer > StarterPlayerScripts
+--
+-- Procura as frutas pelo nome em todo o Workspace.
+-- Não depende de Workspace.Fruits.
 --============================================================
 
 local Players = game:GetService("Players")
@@ -12,7 +15,7 @@ local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
 --============================================================
--- CONFIGURAÇÕES
+-- CONFIG
 --============================================================
 
 local CONFIG = {
@@ -38,219 +41,209 @@ local CONFIG = {
 
 local FruitData = {
 
-	-- COMMON
-
 	["Rocket"] = {
 		Rarity = "Common",
-		Color = Color3.fromRGB(190, 190, 190)
+		Color = Color3.fromRGB(190,190,190)
 	},
 
 	["Spin"] = {
 		Rarity = "Common",
-		Color = Color3.fromRGB(190, 190, 190)
+		Color = Color3.fromRGB(190,190,190)
 	},
 
 	["Blade"] = {
 		Rarity = "Common",
-		Color = Color3.fromRGB(210, 210, 210)
+		Color = Color3.fromRGB(210,210,210)
 	},
 
 	["Spring"] = {
 		Rarity = "Common",
-		Color = Color3.fromRGB(210, 210, 210)
+		Color = Color3.fromRGB(210,210,210)
 	},
 
 	["Bomb"] = {
 		Rarity = "Common",
-		Color = Color3.fromRGB(210, 210, 210)
+		Color = Color3.fromRGB(210,210,210)
 	},
 
 	["Smoke"] = {
 		Rarity = "Common",
-		Color = Color3.fromRGB(180, 180, 180)
+		Color = Color3.fromRGB(180,180,180)
 	},
 
 	["Spike"] = {
 		Rarity = "Common",
-		Color = Color3.fromRGB(200, 200, 200)
+		Color = Color3.fromRGB(200,200,200)
 	},
-
-	-- UNCOMMON
 
 	["Flame"] = {
 		Rarity = "Uncommon",
-		Color = Color3.fromRGB(255, 90, 30)
+		Color = Color3.fromRGB(255,90,30)
 	},
 
 	["Ice"] = {
 		Rarity = "Uncommon",
-		Color = Color3.fromRGB(80, 210, 255)
+		Color = Color3.fromRGB(80,210,255)
 	},
 
 	["Sand"] = {
 		Rarity = "Uncommon",
-		Color = Color3.fromRGB(230, 200, 100)
+		Color = Color3.fromRGB(230,200,100)
 	},
-
-	-- RARE
 
 	["Dark"] = {
 		Rarity = "Rare",
-		Color = Color3.fromRGB(150, 80, 220)
+		Color = Color3.fromRGB(150,80,220)
 	},
 
 	["Eagle"] = {
 		Rarity = "Rare",
-		Color = Color3.fromRGB(180, 140, 80)
+		Color = Color3.fromRGB(180,140,80)
 	},
 
 	["Diamond"] = {
 		Rarity = "Rare",
-		Color = Color3.fromRGB(120, 220, 255)
+		Color = Color3.fromRGB(120,220,255)
 	},
 
 	["Light"] = {
 		Rarity = "Rare",
-		Color = Color3.fromRGB(255, 235, 80)
+		Color = Color3.fromRGB(255,235,80)
 	},
 
 	["Rubber"] = {
 		Rarity = "Rare",
-		Color = Color3.fromRGB(255, 100, 100)
+		Color = Color3.fromRGB(255,100,100)
 	},
 
 	["Ghost"] = {
 		Rarity = "Rare",
-		Color = Color3.fromRGB(190, 150, 255)
+		Color = Color3.fromRGB(190,150,255)
 	},
 
 	["Magma"] = {
 		Rarity = "Rare",
-		Color = Color3.fromRGB(255, 70, 20)
+		Color = Color3.fromRGB(255,70,20)
 	},
-
-	-- LEGENDARY
 
 	["Quake"] = {
 		Rarity = "Legendary",
-		Color = Color3.fromRGB(180, 180, 255)
+		Color = Color3.fromRGB(180,180,255)
 	},
 
 	["Buddha"] = {
 		Rarity = "Legendary",
-		Color = Color3.fromRGB(255, 200, 70)
+		Color = Color3.fromRGB(255,200,70)
 	},
 
 	["Love"] = {
 		Rarity = "Legendary",
-		Color = Color3.fromRGB(255, 100, 180)
+		Color = Color3.fromRGB(255,100,180)
 	},
 
 	["Creation"] = {
 		Rarity = "Legendary",
-		Color = Color3.fromRGB(255, 130, 100)
+		Color = Color3.fromRGB(255,130,100)
 	},
 
 	["Spider"] = {
 		Rarity = "Legendary",
-		Color = Color3.fromRGB(255, 120, 170)
+		Color = Color3.fromRGB(255,120,170)
 	},
 
 	["Sound"] = {
 		Rarity = "Legendary",
-		Color = Color3.fromRGB(120, 220, 255)
+		Color = Color3.fromRGB(120,220,255)
 	},
 
 	["Phoenix"] = {
 		Rarity = "Legendary",
-		Color = Color3.fromRGB(255, 130, 40)
+		Color = Color3.fromRGB(255,130,40)
 	},
 
 	["Portal"] = {
 		Rarity = "Legendary",
-		Color = Color3.fromRGB(130, 80, 255)
+		Color = Color3.fromRGB(130,80,255)
 	},
 
 	["Lightning"] = {
 		Rarity = "Legendary",
-		Color = Color3.fromRGB(255, 230, 80)
+		Color = Color3.fromRGB(255,230,80)
 	},
-
-	-- MYTHICAL
 
 	["Pain"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(255, 80, 100)
+		Color = Color3.fromRGB(255,80,100)
 	},
 
 	["Blizzard"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(150, 220, 255)
+		Color = Color3.fromRGB(150,220,255)
 	},
 
 	["Gravity"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(170, 100, 255)
+		Color = Color3.fromRGB(170,100,255)
 	},
 
 	["Mammoth"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(150, 120, 90)
+		Color = Color3.fromRGB(150,120,90)
 	},
 
 	["T-Rex"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(100, 210, 100)
+		Color = Color3.fromRGB(100,210,100)
 	},
 
 	["Dough"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(255, 130, 180)
+		Color = Color3.fromRGB(255,130,180)
 	},
 
 	["Shadow"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(100, 70, 140)
+		Color = Color3.fromRGB(100,70,140)
 	},
 
 	["Venom"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(130, 255, 100)
+		Color = Color3.fromRGB(130,255,100)
 	},
 
 	["Gas"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(180, 255, 180)
+		Color = Color3.fromRGB(180,255,180)
 	},
 
 	["Spirit"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(255, 230, 100)
+		Color = Color3.fromRGB(255,230,100)
 	},
 
 	["Tiger"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(255, 170, 50)
+		Color = Color3.fromRGB(255,170,50)
 	},
 
 	["Yeti"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(180, 230, 255)
+		Color = Color3.fromRGB(180,230,255)
 	},
 
 	["Kitsune"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(255, 120, 200)
+		Color = Color3.fromRGB(255,120,200)
 	},
 
 	["Control"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(255, 100, 150)
+		Color = Color3.fromRGB(255,100,150)
 	},
 
 	["Dragon"] = {
 		Rarity = "Mythical",
-		Color = Color3.fromRGB(255, 70, 70)
+		Color = Color3.fromRGB(255,70,70)
 	}
 }
 
@@ -271,17 +264,21 @@ local HistoryCount = 0
 -- GUI
 --============================================================
 
-local OldGui = PlayerGui:FindFirstChild("FruitAdminNotifier")
+local OldGui = PlayerGui:FindFirstChild(
+	"FruitAdminNotifier"
+)
 
 if OldGui then
 	OldGui:Destroy()
 end
 
 local Gui = Instance.new("ScreenGui")
+
 Gui.Name = "FruitAdminNotifier"
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
 Gui.Parent = PlayerGui
 
 --============================================================
@@ -290,19 +287,27 @@ Gui.Parent = PlayerGui
 
 local Window = Instance.new("Frame")
 
-Window.Name = "MainWindow"
-Window.Size = UDim2.fromOffset(340, 400)
-Window.Position = UDim2.new(0, 30, 0.5, -200)
+Window.Size =
+	UDim2.fromOffset(340,400)
 
-Window.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+Window.Position =
+	UDim2.new(0,30,0.5,-200)
+
+Window.BackgroundColor3 =
+	Color3.fromRGB(22,22,28)
+
 Window.BorderSizePixel = 0
 Window.Active = true
 
 Window.Parent = Gui
 
 local WindowCorner = Instance.new("UICorner")
-WindowCorner.CornerRadius = UDim.new(0, 10)
-WindowCorner.Parent = Window
+
+WindowCorner.CornerRadius =
+	UDim.new(0,10)
+
+WindowCorner.Parent =
+	Window
 
 --============================================================
 -- HEADER
@@ -310,28 +315,35 @@ WindowCorner.Parent = Window
 
 local Header = Instance.new("Frame")
 
-Header.Size = UDim2.new(1, 0, 0, 42)
+Header.Size =
+	UDim2.new(1,0,0,42)
 
 Header.BackgroundColor3 =
-	Color3.fromRGB(34, 34, 42)
+	Color3.fromRGB(34,34,42)
 
 Header.BorderSizePixel = 0
 Header.Active = true
+
 Header.Parent = Window
 
-local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 10)
-HeaderCorner.Parent = Header
+local HeaderCorner =
+	Instance.new("UICorner")
+
+HeaderCorner.CornerRadius =
+	UDim.new(0,10)
+
+HeaderCorner.Parent =
+	Header
 
 local Title = Instance.new("TextLabel")
 
 Title.BackgroundTransparency = 1
 
 Title.Position =
-	UDim2.fromOffset(12, 0)
+	UDim2.fromOffset(12,0)
 
 Title.Size =
-	UDim2.new(1, -125, 1, 0)
+	UDim2.new(1,-125,1,0)
 
 Title.Font =
 	Enum.Font.GothamBold
@@ -340,7 +352,7 @@ Title.Text =
 	"Fruit Admin Notifier"
 
 Title.TextColor3 =
-	Color3.new(1, 1, 1)
+	Color3.new(1,1,1)
 
 Title.TextSize = 14
 
@@ -350,16 +362,16 @@ Title.TextXAlignment =
 Title.Parent = Header
 
 --============================================================
--- BOTÃO ON/OFF
+-- TOGGLE
 --============================================================
 
 local Toggle = Instance.new("TextButton")
 
 Toggle.Size =
-	UDim2.fromOffset(48, 25)
+	UDim2.fromOffset(48,25)
 
 Toggle.Position =
-	UDim2.new(1, -105, 0, 8)
+	UDim2.new(1,-105,0,8)
 
 Toggle.BorderSizePixel = 0
 
@@ -369,25 +381,31 @@ Toggle.Font =
 Toggle.TextSize = 11
 
 Toggle.TextColor3 =
-	Color3.new(1, 1, 1)
+	Color3.new(1,1,1)
 
 Toggle.Parent = Header
 
-local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0, 6)
-ToggleCorner.Parent = Toggle
+local ToggleCorner =
+	Instance.new("UICorner")
+
+ToggleCorner.CornerRadius =
+	UDim.new(0,6)
+
+ToggleCorner.Parent =
+	Toggle
 
 --============================================================
 -- MINIMIZAR
 --============================================================
 
-local Minimize = Instance.new("TextButton")
+local Minimize =
+	Instance.new("TextButton")
 
 Minimize.Size =
-	UDim2.fromOffset(32, 25)
+	UDim2.fromOffset(32,25)
 
 Minimize.Position =
-	UDim2.new(1, -48, 0, 8)
+	UDim2.new(1,-48,0,8)
 
 Minimize.BackgroundTransparency = 1
 
@@ -398,7 +416,7 @@ Minimize.Text =
 	"—"
 
 Minimize.TextColor3 =
-	Color3.new(1, 1, 1)
+	Color3.new(1,1,1)
 
 Minimize.TextSize = 18
 
@@ -411,10 +429,10 @@ Minimize.Parent = Header
 local Content = Instance.new("Frame")
 
 Content.Position =
-	UDim2.fromOffset(10, 52)
+	UDim2.fromOffset(10,52)
 
 Content.Size =
-	UDim2.new(1, -20, 1, -62)
+	UDim2.new(1,-20,1,-62)
 
 Content.BackgroundTransparency = 1
 
@@ -427,7 +445,7 @@ Content.Parent = Window
 local Status = Instance.new("TextLabel")
 
 Status.Size =
-	UDim2.new(1, 0, 0, 25)
+	UDim2.new(1,0,0,25)
 
 Status.BackgroundTransparency = 1
 
@@ -438,7 +456,7 @@ Status.Text =
 	"Inicializando..."
 
 Status.TextColor3 =
-	Color3.fromRGB(170, 170, 170)
+	Color3.fromRGB(170,170,170)
 
 Status.TextSize = 11
 
@@ -451,16 +469,17 @@ Status.Parent = Content
 -- BOTÃO DE TESTE
 --============================================================
 
-local TestButton = Instance.new("TextButton")
+local TestButton =
+	Instance.new("TextButton")
 
 TestButton.Position =
-	UDim2.fromOffset(0, 30)
+	UDim2.fromOffset(0,30)
 
 TestButton.Size =
-	UDim2.new(1, 0, 0, 32)
+	UDim2.new(1,0,0,32)
 
 TestButton.BackgroundColor3 =
-	Color3.fromRGB(55, 75, 120)
+	Color3.fromRGB(55,75,120)
 
 TestButton.BorderSizePixel = 0
 
@@ -471,27 +490,33 @@ TestButton.Text =
 	"TESTAR NOTIFICAÇÃO"
 
 TestButton.TextColor3 =
-	Color3.new(1, 1, 1)
+	Color3.new(1,1,1)
 
 TestButton.TextSize = 11
 
 TestButton.Parent = Content
 
-local TestCorner = Instance.new("UICorner")
-TestCorner.CornerRadius = UDim.new(0, 6)
-TestCorner.Parent = TestButton
+local TestCorner =
+	Instance.new("UICorner")
+
+TestCorner.CornerRadius =
+	UDim.new(0,6)
+
+TestCorner.Parent =
+	TestButton
 
 --============================================================
 -- HISTÓRICO
 --============================================================
 
-local HistoryTitle = Instance.new("TextLabel")
+local HistoryTitle =
+	Instance.new("TextLabel")
 
 HistoryTitle.Position =
-	UDim2.fromOffset(0, 72)
+	UDim2.fromOffset(0,72)
 
 HistoryTitle.Size =
-	UDim2.new(1, 0, 0, 22)
+	UDim2.new(1,0,0,22)
 
 HistoryTitle.BackgroundTransparency = 1
 
@@ -502,7 +527,7 @@ HistoryTitle.Text =
 	"Histórico de frutas"
 
 HistoryTitle.TextColor3 =
-	Color3.fromRGB(220, 220, 220)
+	Color3.fromRGB(220,220,220)
 
 HistoryTitle.TextSize = 12
 
@@ -511,39 +536,47 @@ HistoryTitle.TextXAlignment =
 
 HistoryTitle.Parent = Content
 
-local History = Instance.new("ScrollingFrame")
+local History =
+	Instance.new("ScrollingFrame")
 
 History.Position =
-	UDim2.fromOffset(0, 98)
+	UDim2.fromOffset(0,98)
 
 History.Size =
-	UDim2.new(1, 0, 1, -98)
+	UDim2.new(1,0,1,-98)
 
 History.BackgroundColor3 =
-	Color3.fromRGB(28, 28, 35)
+	Color3.fromRGB(28,28,35)
 
 History.BorderSizePixel = 0
 
 History.ScrollBarThickness = 4
 
 History.CanvasSize =
-	UDim2.new(0, 0, 0, 0)
+	UDim2.new(0,0,0,0)
 
 History.Parent = Content
 
-local HistoryCorner = Instance.new("UICorner")
-HistoryCorner.CornerRadius = UDim.new(0, 7)
-HistoryCorner.Parent = History
+local HistoryCorner =
+	Instance.new("UICorner")
 
-local HistoryLayout = Instance.new("UIListLayout")
+HistoryCorner.CornerRadius =
+	UDim.new(0,7)
+
+HistoryCorner.Parent =
+	History
+
+local HistoryLayout =
+	Instance.new("UIListLayout")
 
 HistoryLayout.Padding =
-	UDim.new(0, 4)
+	UDim.new(0,4)
 
 HistoryLayout.SortOrder =
 	Enum.SortOrder.LayoutOrder
 
-HistoryLayout.Parent = History
+HistoryLayout.Parent =
+	History
 
 HistoryLayout:GetPropertyChangedSignal(
 	"AbsoluteContentSize"
@@ -568,14 +601,14 @@ local function UpdateToggle()
 		Toggle.Text = "ON"
 
 		Toggle.BackgroundColor3 =
-			Color3.fromRGB(45, 165, 80)
+			Color3.fromRGB(45,165,80)
 
 	else
 
 		Toggle.Text = "OFF"
 
 		Toggle.BackgroundColor3 =
-			Color3.fromRGB(165, 50, 50)
+			Color3.fromRGB(165,50,50)
 
 	end
 
@@ -590,8 +623,11 @@ Toggle.MouseButton1Click:Connect(function()
 	UpdateToggle()
 
 	for _, Billboard in pairs(FruitTags) do
+
 		Billboard.Enabled =
-			Enabled and CONFIG.ShowTags
+			Enabled and
+			CONFIG.ShowTags
+
 	end
 
 	if Enabled then
@@ -613,10 +649,10 @@ end)
 --============================================================
 
 local NormalSize =
-	UDim2.fromOffset(340, 400)
+	UDim2.fromOffset(340,400)
 
 local MiniSize =
-	UDim2.fromOffset(58, 58)
+	UDim2.fromOffset(58,58)
 
 Minimize.MouseButton1Click:Connect(function()
 
@@ -643,7 +679,8 @@ Window.InputBegan:Connect(function(Input)
 
 		Minimized = false
 
-		Window.Size = NormalSize
+		Window.Size =
+			NormalSize
 
 		Content.Visible = true
 		Toggle.Visible = true
@@ -657,7 +694,7 @@ Window.InputBegan:Connect(function(Input)
 end)
 
 --============================================================
--- ARRASTAR MENU
+-- ARRASTAR
 --============================================================
 
 local Dragging = false
@@ -725,7 +762,8 @@ end)
 -- SOM
 --============================================================
 
-local Sound = Instance.new("Sound")
+local Sound =
+	Instance.new("Sound")
 
 Sound.Name =
 	"FruitNotificationSound"
@@ -742,15 +780,19 @@ Sound.Parent =
 -- PEGAR PART DA FRUTA
 --============================================================
 
-local function GetFruitPart(Fruit)
+local function GetFruitPart(Object)
 
-	if Fruit:IsA("BasePart") then
-		return Fruit
+	if Object:IsA("BasePart") then
+		return Object
 	end
 
-	if Fruit:IsA("Model") then
+	if Object:IsA("Model") then
 
-		return Fruit:FindFirstChildWhichIsA(
+		if Object.PrimaryPart then
+			return Object.PrimaryPart
+		end
+
+		return Object:FindFirstChildWhichIsA(
 			"BasePart",
 			true
 		)
@@ -762,7 +804,7 @@ local function GetFruitPart(Fruit)
 end
 
 --============================================================
--- CRIAR TEXTO ACIMA DA FRUTA
+-- CRIAR MARCADOR
 --============================================================
 
 local function CreateFruitTag(Fruit)
@@ -788,7 +830,7 @@ local function CreateFruitTag(Fruit)
 		Part
 
 	Billboard.Size =
-		UDim2.fromOffset(160, 40)
+		UDim2.fromOffset(160,40)
 
 	Billboard.StudsOffset =
 		Vector3.new(
@@ -813,7 +855,7 @@ local function CreateFruitTag(Fruit)
 		Instance.new("TextLabel")
 
 	Label.Size =
-		UDim2.fromScale(1, 1)
+		UDim2.fromScale(1,1)
 
 	Label.BackgroundTransparency = 1
 
@@ -833,7 +875,7 @@ local function CreateFruitTag(Fruit)
 		Data and
 		Data.Color
 		or
-		Color3.new(1, 1, 1)
+		Color3.new(1,1,1)
 
 	Label.Parent =
 		Billboard
@@ -863,7 +905,7 @@ local function CreateFruitTag(Fruit)
 end
 
 --============================================================
--- ADICIONAR AO HISTÓRICO
+-- HISTÓRICO
 --============================================================
 
 local function AddHistory(
@@ -893,19 +935,10 @@ local function AddHistory(
 		-HistoryCount
 
 	Item.Size =
-		UDim2.new(
-			1,
-			-8,
-			0,
-			48
-		)
+		UDim2.new(1,-8,0,48)
 
 	Item.BackgroundColor3 =
-		Color3.fromRGB(
-			38,
-			38,
-			47
-		)
+		Color3.fromRGB(38,38,47)
 
 	Item.BorderSizePixel = 0
 
@@ -932,7 +965,7 @@ local function AddHistory(
 		Data and
 		Data.Color
 		or
-		Color3.new(1, 1, 1)
+		Color3.new(1,1,1)
 
 	Item.Parent =
 		History
@@ -941,12 +974,12 @@ local function AddHistory(
 		Instance.new("UICorner")
 
 	Corner.CornerRadius =
-		UDim.new(0, 6)
+		UDim.new(0,6)
 
 	Corner.Parent =
 		Item
 
-	-- Limitar histórico
+	-- Limita o histórico
 
 	local Items = {}
 
@@ -970,7 +1003,7 @@ local function AddHistory(
 
 		table.sort(
 			Items,
-			function(A, B)
+			function(A,B)
 
 				return A.LayoutOrder >
 					B.LayoutOrder
@@ -1070,20 +1103,6 @@ end
 
 local function ScanFruits()
 
-	local FruitsFolder =
-		workspace:FindFirstChild(
-			"Fruits"
-		)
-
-	if not FruitsFolder then
-
-		Status.Text =
-			"ERRO: Workspace.Fruits não encontrada"
-
-		return
-
-	end
-
 	local Character =
 		Player.Character
 
@@ -1099,22 +1118,22 @@ local function ScanFruits()
 
 	local CurrentFruits = {}
 
-	for _, Fruit in ipairs(
-		FruitsFolder:GetChildren()
+	-- Procura em todo o Workspace.
+	-- Só objetos com nome cadastrado são considerados.
+
+	for _, Object in ipairs(
+		workspace:GetDescendants()
 	) do
 
-		if not (
-			Fruit:IsA("Model")
-			or
-			Fruit:IsA("BasePart")
-		) then
+		local Data =
+			FruitData[Object.Name]
 
+		if not Data then
 			continue
-
 		end
 
 		local Part =
-			GetFruitPart(Fruit)
+			GetFruitPart(Object)
 
 		if not Part then
 			continue
@@ -1126,42 +1145,44 @@ local function ScanFruits()
 				Part.Position
 			).Magnitude
 
-		if Distance <=
+		if Distance >
 			CONFIG.MaxDistance then
 
-			CurrentFruits[Fruit] =
+			continue
+
+		end
+
+		CurrentFruits[Object] =
+			Distance
+
+		CreateFruitTag(Object)
+
+		-- Nova fruta encontrada
+
+		if not DetectedFruits[Object] then
+
+			DetectedFruits[Object] =
+				true
+
+			Notify(
+				Object.Name,
 				Distance
-
-			CreateFruitTag(Fruit)
-
-			-- Fruta nova
-
-			if not DetectedFruits[Fruit] then
-
-				DetectedFruits[Fruit] =
-					true
-
-				Notify(
-					Fruit.Name,
-					Distance
-				)
-
-			end
+			)
 
 		end
 
 	end
 
 	--========================================================
-	-- REMOVER FRUTAS QUE SUMIRAM
+	-- LIMPEZA
 	--========================================================
 
 	for Fruit in pairs(
 		DetectedFruits
 	) do
 
-		if not CurrentFruits[Fruit]
-			or not Fruit.Parent then
+		if not Fruit.Parent
+			or not CurrentFruits[Fruit] then
 
 			DetectedFruits[Fruit] =
 				nil
@@ -1185,7 +1206,7 @@ local function ScanFruits()
 end
 
 --============================================================
--- SCAN A CADA 2 SEGUNDOS
+-- LOOP DE 2 SEGUNDOS
 --============================================================
 
 task.spawn(function()
@@ -1203,7 +1224,7 @@ task.spawn(function()
 end)
 
 --============================================================
--- ATUALIZAÇÃO DO TEXTO SOBRE AS FRUTAS
+-- ATUALIZAÇÃO DOS MARCADORES
 --============================================================
 
 task.spawn(function()
@@ -1317,12 +1338,12 @@ TestButton.MouseButton1Click:Connect(function()
 end)
 
 --============================================================
--- FINALIZAÇÃO
+-- INICIALIZAÇÃO
 --============================================================
 
 Status.Text =
 	"Monitorando frutas..."
 
 print(
-	"[Fruit Admin Notifier] Sistema iniciado."
+	"[Fruit Admin Notifier] Iniciado com sucesso."
 )
