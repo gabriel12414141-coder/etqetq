@@ -1,468 +1,590 @@
--- ============================================
--- LocalScript: colocar em StarterPlayerScripts
--- ESP de Frutas para mapas GRANDES (estilo mundo aberto com ilhas)
+--========================================================
+-- FRUIT FINDER OTIMIZADO (v2)
+-- Detecta frutas no Workspace sem varrer tudo a cada 0.5s
+-- Para o seu próprio jogo Roblox
 --
--- Recursos:
---  - Menu arrastável com lista de frutas (ordenada por distância)
---  - Toggle ON/OFF (botão ou tecla F)
---  - Billboard + Highlight 3D só quando a fruta está perto (evita clutter)
---  - Setas de radar 2D na borda da tela apontando pra frutas longe
---  - Detecção do nome da ilha onde a fruta está
---  - Atualizações pesadas throttled (não roda tudo todo frame)
--- ============================================
+-- O que mudou em relação à v1:
+--  - Varredura inicial em LOTES (a v1 dava task.wait(0.05) por
+--    objeto, o que em mapas grandes podia levar minutos)
+--  - Lista mostra distância e ordena do mais perto pro mais longe
+--  - Painel atualiza de forma incremental (não destrói e recria
+--    tudo a cada 0.5s, evita engasgos)
+--  - Limite de itens exibidos (as mais próximas), pra não virar
+--    bagunça visual com muitas frutas espalhadas
+--========================================================
 
 local Players = game:GetService("Players")
-local CollectionService = game:GetService("CollectionService")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
-local jogadorLocal = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+--========================================================
+-- CONFIGURAÇÃO
+--========================================================
 
--- ============================================
--- CONFIGURAÇÕES
--- ============================================
+local MAX_DISTANCE = 1000       -- distância máxima de renderização do billboard 3D
+local SCAN_BATCH_SIZE = 500     -- quantos objetos processar antes de liberar um frame
+local UPDATE_INTERVAL = 0.5     -- intervalo de atualização do painel
+local MAX_ITEMS_LISTA = 40      -- limite de itens mostrados na lista (as mais próximas)
 
-local DROPPED_FRUITS_PATH = workspace -- ajuste se "DroppedFruits" não ficar direto no Workspace
-local NOME_PASTA_FRUTAS = "DroppedFruits" -- pasta onde as frutas dropadas aparecem
-local TAG_ILHA = "Ilha"            -- tag opcional usada nos models das ilhas
-local DISTANCIA_VISUAL_3D = 150    -- só mostra o highlight dentro desse raio
-local DISTANCIA_MAXIMA_RADAR = 100000 -- radar funciona no mapa inteiro
-local MAX_ITENS_MENU = 25          -- limite de itens mostrados na lista/radar (evita clutter e lag)
-local INTERVALO_ATUALIZACAO = 0.3  -- segundos entre recálculos pesados (distância, ordenação)
-local COR_ESP = Color3.fromRGB(255, 200, 0)
-local TECLA_TOGGLE = Enum.KeyCode.F
-local MARGEM_TELA = 40             -- margem da seta em relação à borda da tela
+--========================================================
+-- BANCO DE FRUTAS
+--========================================================
 
-local espAtivo = false
-local espAtivos = {} -- [fruta] = { highlight, itemFrame, arrowLabel, ilha, nome }
-local acumuladorTempo = 0
-
--- ============================================
--- IDENTIFICAÇÃO DE FRUTAS (mesmas convenções do seu jogo)
--- ============================================
-
--- Substitua pelos nomes reais das suas frutas (mesma lista usada no resto do jogo)
 local FRUITS = {
-    -- "NomeDaFruta1", "NomeDaFruta2", ...
+
+	["Rocket Fruit"] = {"RocketFruit", "Rocket"},
+	["Spin Fruit"] = {"SpinFruit", "Spin"},
+	["Blade Fruit"] = {"BladeFruit", "Blade"},
+	["Spring Fruit"] = {"SpringFruit", "Spring"},
+	["Bomb Fruit"] = {"BombFruit", "Bomb"},
+	["Smoke Fruit"] = {"SmokeFruit", "Smoke"},
+	["Spike Fruit"] = {"SpikeFruit", "Spike"},
+
+	["Flame Fruit"] = {"FlameFruit", "Flame"},
+	["Ice Fruit"] = {"IceFruit", "Ice"},
+	["Sand Fruit"] = {"SandFruit", "Sand"},
+	["Dark Fruit"] = {"DarkFruit", "Dark"},
+	["Light Fruit"] = {"LightFruit", "Light"},
+	["Magma Fruit"] = {"MagmaFruit", "Magma"},
+
+	["Falcon Fruit"] = {"FalconFruit", "Falcon"},
+	["Diamond Fruit"] = {"DiamondFruit", "Diamond"},
+	["Rubber Fruit"] = {"RubberFruit", "Rubber"},
+	["Barrier Fruit"] = {"BarrierFruit", "Barrier"},
+	["Ghost Fruit"] = {"GhostFruit", "Ghost"},
+
+	["Quake Fruit"] = {"QuakeFruit", "Quake"},
+	["Buddha Fruit"] = {"BuddhaFruit", "Buddha"},
+	["Love Fruit"] = {"LoveFruit", "Love"},
+	["Spider Fruit"] = {"SpiderFruit", "Spider"},
+	["Sound Fruit"] = {"SoundFruit", "Sound"},
+	["Phoenix Fruit"] = {"PhoenixFruit", "Phoenix"},
+	["Portal Fruit"] = {"PortalFruit", "Portal"},
+
+	["Rumble Fruit"] = {"RumbleFruit", "Rumble"},
+	["Pain Fruit"] = {"PainFruit", "Pain"},
+	["Blizzard Fruit"] = {"BlizzardFruit", "Blizzard"},
+	["Gravity Fruit"] = {"GravityFruit", "Gravity"},
+	["Mammoth Fruit"] = {"MammothFruit", "Mammoth"},
+
+	["T-Rex Fruit"] = {
+		"TRexFruit",
+		"TrexFruit",
+		"TRex",
+		"TRexModel"
+	},
+
+	["Dough Fruit"] = {"DoughFruit", "Dough"},
+	["Shadow Fruit"] = {"ShadowFruit", "Shadow"},
+	["Venom Fruit"] = {"VenomFruit", "Venom"},
+	["Control Fruit"] = {"ControlFruit", "Control"},
+	["Spirit Fruit"] = {"SpiritFruit", "Spirit"},
+	["Gas Fruit"] = {"GasFruit", "Gas"},
+	["Yeti Fruit"] = {"YetiFruit", "Yeti"},
+	["Leopard Fruit"] = {"LeopardFruit", "Leopard"},
+	["Kitsune Fruit"] = {"KitsuneFruit", "Kitsune"},
+	["Dragon Fruit"] = {"DragonFruit", "Dragon"},
 }
 
-local function identifyByAttributes(fruta)
-    return fruta:GetAttribute("FruitName")
-        or fruta:GetAttribute("Fruit")
-        or fruta:GetAttribute("FruitType")
+--========================================================
+-- NORMALIZAÇÃO
+--========================================================
+
+local function normalize(text)
+	text = tostring(text or ""):lower()
+	return text:gsub("[%s_%-%[%]%(%){}]", "")
 end
 
-local function identifyByName(fruta)
-    for _, nome in ipairs(FRUITS) do
-        if fruta.Name == nome or fruta.Name:find(nome, 1, true) then
-            return nome
-        end
-    end
-    return nil
+--========================================================
+-- TABELA DE ALIASES PRÉ-NORMALIZADA
+--========================================================
+
+local ALIASES = {}
+
+for fruitName, aliases in pairs(FRUITS) do
+	for _, alias in ipairs(aliases) do
+		ALIASES[normalize(alias)] = fruitName
+	end
 end
 
-local function identifyFruit(fruta)
-    return identifyByAttributes(fruta) or identifyByName(fruta) or fruta.Name
+--========================================================
+-- CHAVES DE ATRIBUTO ACEITAS (pré-normalizadas)
+--========================================================
+
+local ATTRIBUTE_KEYS = {
+	fruitname = true,
+	fruit = true,
+	fruittype = true,
+}
+
+local function findFruitInAttributes(instance)
+	for key, value in pairs(instance:GetAttributes()) do
+		if ATTRIBUTE_KEYS[normalize(key)] then
+			local resultado = ALIASES[normalize(value)]
+			if resultado then
+				return resultado
+			end
+		end
+	end
+	return nil
 end
 
--- ============================================
--- FUNÇÃO: descobrir em qual ilha a fruta está
--- ============================================
+--========================================================
+-- IDENTIFICAÇÃO RÁPIDA
+--========================================================
 
-local function acharIlha(fruta)
-    -- 1) Atributo manual (mais confiável, defina no Studio: fruta:SetAttribute("Ilha", "Ilha do Fogo"))
-    local atributo = fruta:GetAttribute("Ilha")
-    if atributo then
-        return atributo
-    end
+local function identifyFruit(object)
 
-    -- 2) Sobe na hierarquia procurando um ancestral com a tag "Ilha"
-    local atual = fruta.Parent
-    while atual and atual ~= workspace do
-        if CollectionService:HasTag(atual, TAG_ILHA) then
-            return atual.Name
-        end
-        atual = atual.Parent
-    end
+	-- Nome do próprio objeto
+	local direto = ALIASES[normalize(object.Name)]
+	if direto then
+		return direto
+	end
 
-    return "Desconhecida"
+	-- Atributos do próprio objeto
+	local porAtributo = findFruitInAttributes(object)
+	if porAtributo then
+		return porAtributo
+	end
+
+	-- Procurar descendentes (nome ou atributo)
+	for _, child in ipairs(object:GetDescendants()) do
+		local porNomeFilho = ALIASES[normalize(child.Name)]
+		if porNomeFilho then
+			return porNomeFilho
+		end
+
+		local porAtributoFilho = findFruitInAttributes(child)
+		if porAtributoFilho then
+			return porAtributoFilho
+		end
+	end
+
+	return nil
 end
 
--- ============================================
--- INTERFACE: MENU PRINCIPAL (arrastável)
--- ============================================
+--========================================================
+-- FRUTAS DETECTADAS
+--========================================================
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MenuESPFrutas"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = jogadorLocal:WaitForChild("PlayerGui")
+local detectedFruits = {} -- [object] = fruitName
 
-local frame = Instance.new("Frame")
-frame.Name = "Frame"
-frame.Size = UDim2.new(0, 240, 0, 320)
-frame.Position = UDim2.new(0, 20, 0.5, -160)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
+--========================================================
+-- ENCONTRAR PARTE DA FRUTA
+--========================================================
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
-corner.Parent = frame
+local function getFruitPart(object)
+	if object:IsA("BasePart") then
+		return object
+	end
 
-local titulo = Instance.new("TextLabel")
-titulo.Name = "Titulo"
-titulo.Size = UDim2.new(1, 0, 0, 36)
-titulo.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-titulo.Text = "🍎 ESP de Frutas"
-titulo.TextColor3 = Color3.new(1, 1, 1)
-titulo.Font = Enum.Font.GothamBold
-titulo.TextSize = 16
-titulo.Active = true
-titulo.Parent = frame
+	if object:IsA("Model") then
+		if object.PrimaryPart then
+			return object.PrimaryPart
+		end
 
-local tituloCorner = Instance.new("UICorner")
-tituloCorner.CornerRadius = UDim.new(0, 8)
-tituloCorner.Parent = titulo
+		local handle = object:FindFirstChild("Handle", true)
+		if handle and handle:IsA("BasePart") then
+			return handle
+		end
+	end
 
-local botaoToggle = Instance.new("TextButton")
-botaoToggle.Size = UDim2.new(1, -20, 0, 36)
-botaoToggle.Position = UDim2.new(0, 10, 0, 44)
-botaoToggle.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-botaoToggle.Text = "ESP: DESLIGADO"
-botaoToggle.TextColor3 = Color3.new(1, 1, 1)
-botaoToggle.Font = Enum.Font.GothamBold
-botaoToggle.TextSize = 14
-botaoToggle.Parent = frame
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 6)
-toggleCorner.Parent = botaoToggle
-
-local contador = Instance.new("TextLabel")
-contador.Size = UDim2.new(1, -20, 0, 20)
-contador.Position = UDim2.new(0, 10, 0, 86)
-contador.BackgroundTransparency = 1
-contador.Text = "Frutas no mapa: 0"
-contador.TextColor3 = Color3.fromRGB(200, 200, 200)
-contador.Font = Enum.Font.Gotham
-contador.TextSize = 13
-contador.TextXAlignment = Enum.TextXAlignment.Left
-contador.Parent = frame
-
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -20, 1, -120)
-scrollFrame.Position = UDim2.new(0, 10, 0, 112)
-scrollFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-scrollFrame.BorderSizePixel = 0
-scrollFrame.ScrollBarThickness = 4
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrollFrame.Parent = frame
-
-local scrollCorner = Instance.new("UICorner")
-scrollCorner.CornerRadius = UDim.new(0, 6)
-scrollCorner.Parent = scrollFrame
-
-local listLayout = Instance.new("UIListLayout")
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder -- usaremos LayoutOrder = distância p/ ordenar
-listLayout.Padding = UDim.new(0, 4)
-listLayout.Parent = scrollFrame
-
-local listPadding = Instance.new("UIPadding")
-listPadding.PaddingTop = UDim.new(0, 4)
-listPadding.PaddingLeft = UDim.new(0, 4)
-listPadding.PaddingRight = UDim.new(0, 4)
-listPadding.Parent = scrollFrame
-
--- ============================================
--- INTERFACE: CAMADA DE RADAR (setas na tela)
--- ============================================
-
-local radarGui = Instance.new("ScreenGui")
-radarGui.Name = "RadarFrutas"
-radarGui.ResetOnSpawn = false
-radarGui.DisplayOrder = 5
-radarGui.Parent = jogadorLocal:WaitForChild("PlayerGui")
-
--- ============================================
--- ARRASTAR O MENU (versão robusta com AbsolutePosition)
--- ============================================
-
-frame.Active = true
-titulo.Active = true
-
-local arrastando = false
-local deslocamento = Vector2.new(0, 0)
-
-local function iniciarArrasto(input)
-    arrastando = true
-    deslocamento = Vector2.new(
-        frame.AbsolutePosition.X - input.Position.X,
-        frame.AbsolutePosition.Y - input.Position.Y
-    )
+	return object:FindFirstChildWhichIsA("BasePart", true)
 end
 
-local function pararArrasto()
-    arrastando = false
+--========================================================
+-- DISTÂNCIA ATÉ UM PERSONAGEM
+--========================================================
+
+local function getDistance(object, hrp)
+	if not hrp then
+		return nil
+	end
+
+	local part = getFruitPart(object)
+	if not part then
+		return nil
+	end
+
+	return (part.Position - hrp.Position).Magnitude
 end
 
-titulo.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-       or input.UserInputType == Enum.UserInputType.Touch then
-        iniciarArrasto(input)
-    end
+--========================================================
+-- CRIAR TEXTO SOBRE A FRUTA
+--========================================================
+
+local function createDisplay(object, fruitName)
+	local part = getFruitPart(object)
+	if not part then
+		return
+	end
+
+	local old = object:FindFirstChild("FruitNameDisplay")
+	if old then
+		old:Destroy()
+	end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "FruitNameDisplay"
+	billboard.Adornee = part
+	billboard.Size = UDim2.fromOffset(180, 40)
+	billboard.StudsOffset = Vector3.new(0, 3, 0)
+	billboard.AlwaysOnTop = true
+	billboard.MaxDistance = MAX_DISTANCE
+	billboard.LightInfluence = 0
+	billboard.Parent = object
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Text = "🍎 " .. fruitName
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.TextStrokeColor3 = Color3.new(0, 0, 0)
+	label.TextStrokeTransparency = 0.2
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.Parent = billboard
+end
+
+--========================================================
+-- REGISTRAR / REMOVER FRUTA
+--========================================================
+
+local function registerFruit(object)
+	if detectedFruits[object] then
+		return
+	end
+
+	if not object:IsA("Model") then
+		return
+	end
+
+	local fruitName = identifyFruit(object)
+	if not fruitName then
+		return
+	end
+
+	detectedFruits[object] = fruitName
+	createDisplay(object, fruitName)
+end
+
+local function unregisterFruit(object)
+	detectedFruits[object] = nil
+end
+
+--========================================================
+-- VARREDURA INICIAL (em lotes, não trava o servidor)
+--========================================================
+
+task.spawn(function()
+	local descendants = workspace:GetDescendants()
+	local processados = 0
+
+	for _, object in ipairs(descendants) do
+		registerFruit(object)
+
+		processados += 1
+		if processados >= SCAN_BATCH_SIZE then
+			processados = 0
+			task.wait() -- libera um frame a cada lote, não a cada objeto
+		end
+	end
 end)
 
--- Conexões globais (fora do titulo) evitam duplicar listeners a cada clique
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-       or input.UserInputType == Enum.UserInputType.Touch then
-        pararArrasto()
-    end
+--========================================================
+-- DETECTAR FRUTA NOVA / REMOVIDA
+--========================================================
+
+workspace.DescendantAdded:Connect(function(object)
+	task.defer(function()
+		registerFruit(object)
+	end)
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if arrastando and (input.UserInputType == Enum.UserInputType.MouseMovement
-                        or input.UserInputType == Enum.UserInputType.Touch) then
-        local novaPosX = input.Position.X + deslocamento.X
-        local novaPosY = input.Position.Y + deslocamento.Y
-        frame.Position = UDim2.new(0, novaPosX, 0, novaPosY)
-    end
+workspace.DescendantRemoving:Connect(function(object)
+	unregisterFruit(object)
 end)
 
--- ============================================
--- CRIAÇÃO / REMOÇÃO DE ENTRADAS DE FRUTA
--- ============================================
+--========================================================
+-- GUI
+--========================================================
 
-local function atualizarContador()
-    local total = 0
-    for _ in pairs(espAtivos) do total += 1 end
-    contador.Text = "Frutas no mapa: " .. total
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 8)
+local function createGui(player)
+	local playerGui = player:WaitForChild("PlayerGui")
+
+	local old = playerGui:FindFirstChild("FruitFinder")
+	if old then
+		old:Destroy()
+	end
+
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "FruitFinder"
+	gui.ResetOnSpawn = false
+	gui.Parent = playerGui
+
+	--====================================================
+	-- PAINEL
+	--====================================================
+
+	local main = Instance.new("Frame")
+	main.Size = UDim2.fromOffset(360, 410)
+	main.Position = UDim2.fromOffset(30, 100)
+	main.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
+	main.BorderSizePixel = 0
+	main.Active = true
+	main.Parent = gui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = main
+
+	--====================================================
+	-- CABEÇALHO
+	--====================================================
+
+	local header = Instance.new("Frame")
+	header.Size = UDim2.new(1, 0, 0, 55)
+	header.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+	header.BorderSizePixel = 0
+	header.Active = true
+	header.Parent = main
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -100, 1, 0)
+	title.Position = UDim2.fromOffset(12, 0)
+	title.BackgroundTransparency = 1
+	title.Text = "🍎 FRUIT FINDER"
+	title.TextColor3 = Color3.new(1, 1, 1)
+	title.TextSize = 18
+	title.Font = Enum.Font.GothamBold
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Parent = header
+
+	--====================================================
+	-- CONTADOR
+	--====================================================
+
+	local counter = Instance.new("TextLabel")
+	counter.Size = UDim2.fromOffset(35, 55)
+	counter.Position = UDim2.new(1, -80, 0, 0)
+	counter.BackgroundTransparency = 1
+	counter.Text = "0"
+	counter.TextColor3 = Color3.fromRGB(180, 180, 180)
+	counter.TextSize = 14
+	counter.Font = Enum.Font.GothamBold
+	counter.Parent = header
+
+	--====================================================
+	-- MINIMIZAR
+	--====================================================
+
+	local minimize = Instance.new("TextButton")
+	minimize.Size = UDim2.fromOffset(40, 40)
+	minimize.Position = UDim2.new(1, -45, 0, 7)
+	minimize.BackgroundTransparency = 1
+	minimize.Text = "−"
+	minimize.TextColor3 = Color3.new(1, 1, 1)
+	minimize.TextSize = 25
+	minimize.Font = Enum.Font.GothamBold
+	minimize.Parent = header
+
+	--====================================================
+	-- LISTA
+	--====================================================
+
+	local list = Instance.new("ScrollingFrame")
+	list.Position = UDim2.fromOffset(10, 65)
+	list.Size = UDim2.new(1, -20, 1, -75)
+	list.BackgroundTransparency = 1
+	list.BorderSizePixel = 0
+	list.ScrollBarThickness = 4
+	list.Parent = main
+
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 6)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = list
+
+	--====================================================
+	-- ARRASTAR
+	--====================================================
+
+	local dragging = false
+	local dragStart
+	local startPosition
+	local dragInput
+
+	local function updateDrag(input)
+		local delta = input.Position - dragStart
+		main.Position = UDim2.new(
+			startPosition.X.Scale, startPosition.X.Offset + delta.X,
+			startPosition.Y.Scale, startPosition.Y.Offset + delta.Y
+		)
+	end
+
+	header.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPosition = main.Position
+		end
+	end)
+
+	header.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement
+			or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement) then
+			updateDrag(input)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+			dragInput = nil
+		end
+	end)
+
+	--====================================================
+	-- MINIMIZAR
+	--====================================================
+
+	local minimized = false
+
+	minimize.MouseButton1Click:Connect(function()
+		minimized = not minimized
+
+		if minimized then
+			list.Visible = false
+			main.Size = UDim2.fromOffset(360, 55)
+			minimize.Text = "+"
+		else
+			list.Visible = true
+			main.Size = UDim2.fromOffset(360, 410)
+			minimize.Text = "−"
+		end
+	end)
+
+	--====================================================
+	-- ATUALIZAR PAINEL (incremental, com distância e ordenação)
+	--====================================================
+
+	local itemFrames = {} -- [object] = {frame = Frame, label = TextLabel}
+
+	local function updatePanel()
+		local personagem = player.Character
+		local hrp = personagem and personagem:FindFirstChild("HumanoidRootPart")
+
+		-- Monta lista válida com distância, removendo entradas mortas
+		local ordenado = {}
+		for object, fruitName in pairs(detectedFruits) do
+			if object and object.Parent and object:IsDescendantOf(workspace) then
+				table.insert(ordenado, {
+					object = object,
+					fruitName = fruitName,
+					distancia = getDistance(object, hrp),
+				})
+			else
+				detectedFruits[object] = nil
+			end
+		end
+
+		table.sort(ordenado, function(a, b)
+			if a.distancia and b.distancia then
+				return a.distancia < b.distancia
+			end
+			return a.distancia ~= nil -- entradas sem distância vão pro final
+		end)
+
+		local visiveis = {}
+
+		for indice, entrada in ipairs(ordenado) do
+			if indice > MAX_ITEMS_LISTA then
+				break
+			end
+
+			visiveis[entrada.object] = true
+			local dados = itemFrames[entrada.object]
+
+			if not dados then
+				local item = Instance.new("Frame")
+				item.Size = UDim2.new(1, -5, 0, 50)
+				item.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+				item.BorderSizePixel = 0
+				item.Parent = list
+
+				local itemCorner = Instance.new("UICorner")
+				itemCorner.CornerRadius = UDim.new(0, 8)
+				itemCorner.Parent = item
+
+				local label = Instance.new("TextLabel")
+				label.Size = UDim2.new(1, -20, 1, 0)
+				label.Position = UDim2.fromOffset(10, 0)
+				label.BackgroundTransparency = 1
+				label.TextColor3 = Color3.new(1, 1, 1)
+				label.TextSize = 14
+				label.Font = Enum.Font.GothamBold
+				label.TextXAlignment = Enum.TextXAlignment.Left
+				label.Parent = item
+
+				dados = {frame = item, label = label}
+				itemFrames[entrada.object] = dados
+			end
+
+			dados.frame.LayoutOrder = indice
+
+			if entrada.distancia then
+				dados.label.Text = string.format("🍎 %s (%dm)", entrada.fruitName, math.floor(entrada.distancia))
+			else
+				dados.label.Text = "🍎 " .. entrada.fruitName
+			end
+		end
+
+		-- Remove da UI quem saiu do top N ou deixou de existir
+		for object, dados in pairs(itemFrames) do
+			if not visiveis[object] then
+				dados.frame:Destroy()
+				itemFrames[object] = nil
+			end
+		end
+
+		local total = 0
+		for _ in pairs(detectedFruits) do
+			total += 1
+		end
+		counter.Text = tostring(total)
+
+		list.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+	end
+
+	task.spawn(function()
+		while gui.Parent do
+			if not minimized then
+				updatePanel()
+			end
+			task.wait(UPDATE_INTERVAL)
+		end
+	end)
 end
 
-local function criarEntradaFruta(fruta)
-    if espAtivos[fruta] then return end
+--========================================================
+-- PLAYERS
+--========================================================
 
-    local nome = identifyFruit(fruta)
-
-    -- Não criamos um BillboardGui de nome próprio: o jogo já tem "FruitNameDisplay"
-    -- acima da fruta. Aqui só adicionamos o contorno (Highlight) pra reforçar
-    -- visualmente quando o ESP está ligado e a fruta está perto.
-    local highlight = Instance.new("Highlight")
-    highlight.FillColor = COR_ESP
-    highlight.FillTransparency = 0.7
-    highlight.OutlineColor = COR_ESP
-    highlight.Enabled = false
-    highlight.Parent = fruta
-
-    -- Item na lista do menu
-    local itemFrame = Instance.new("TextLabel")
-    itemFrame.Size = UDim2.new(1, 0, 0, 32)
-    itemFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    itemFrame.Text = "  🍊 " .. nome
-    itemFrame.TextColor3 = Color3.new(1, 1, 1)
-    itemFrame.Font = Enum.Font.Gotham
-    itemFrame.TextSize = 12
-    itemFrame.TextXAlignment = Enum.TextXAlignment.Left
-    itemFrame.TextYAlignment = Enum.TextYAlignment.Center
-    itemFrame.LayoutOrder = 0
-    itemFrame.Parent = scrollFrame
-
-    local itemCorner = Instance.new("UICorner")
-    itemCorner.CornerRadius = UDim.new(0, 4)
-    itemCorner.Parent = itemFrame
-
-    -- Seta de radar (2D, borda da tela)
-    local arrowLabel = Instance.new("TextLabel")
-    arrowLabel.Name = "Seta_" .. nome
-    arrowLabel.Size = UDim2.new(0, 50, 0, 26)
-    arrowLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-    arrowLabel.BackgroundTransparency = 1
-    arrowLabel.Text = "▲"
-    arrowLabel.TextColor3 = COR_ESP
-    arrowLabel.TextStrokeTransparency = 0
-    arrowLabel.Font = Enum.Font.GothamBold
-    arrowLabel.TextSize = 22
-    arrowLabel.Visible = false
-    arrowLabel.Parent = radarGui
-
-    local arrowDistText = Instance.new("TextLabel")
-    arrowDistText.Size = UDim2.new(1, 0, 0, 14)
-    arrowDistText.Position = UDim2.new(0, 0, 1, 0)
-    arrowDistText.BackgroundTransparency = 1
-    arrowDistText.Text = ""
-    arrowDistText.TextColor3 = Color3.new(1, 1, 1)
-    arrowDistText.TextStrokeTransparency = 0.3
-    arrowDistText.Font = Enum.Font.Gotham
-    arrowDistText.TextSize = 11
-    arrowDistText.Parent = arrowLabel
-
-    espAtivos[fruta] = {
-        highlight = highlight,
-        itemFrame = itemFrame,
-        arrowLabel = arrowLabel,
-        arrowDistText = arrowDistText,
-        ilha = acharIlha(fruta),
-        nome = nome,
-    }
-
-    atualizarContador()
-end
-
-local function removerEntradaFruta(fruta)
-    local dados = espAtivos[fruta]
-    if dados then
-        dados.highlight:Destroy()
-        dados.itemFrame:Destroy()
-        dados.arrowLabel:Destroy()
-        espAtivos[fruta] = nil
-        atualizarContador()
-    end
-end
-
-
--- ============================================
--- ATUALIZAÇÃO PESADA (throttled): distância, ordenação, ilha
--- ============================================
-
-local function atualizarListaEDistancias()
-    local personagem = jogadorLocal.Character
-    if not personagem then return end
-    local hrp = personagem:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    -- Monta array pra ordenar por distância
-    local ordenados = {}
-    for fruta, dados in pairs(espAtivos) do
-        if fruta and fruta.Parent then
-            local distancia = (fruta:GetPivot().Position - hrp.Position).Magnitude
-            table.insert(ordenados, {fruta = fruta, dados = dados, distancia = distancia})
-        else
-            removerEntradaFruta(fruta)
-        end
-    end
-
-    table.sort(ordenados, function(a, b) return a.distancia < b.distancia end)
-
-    for indice, entrada in ipairs(ordenados) do
-        local fruta, dados, distancia = entrada.fruta, entrada.dados, entrada.distancia
-        local distanciaTexto = math.floor(distancia)
-
-        -- Atualiza texto da lista (LayoutOrder = distância -> ordena automaticamente)
-        dados.itemFrame.LayoutOrder = distanciaTexto
-        dados.itemFrame.Text = string.format("  🍊 %s\n     %s - %dm", dados.nome, dados.ilha, distanciaTexto)
-
-        -- Só mostra na lista/radar os N mais próximos (evita clutter em mapa gigante)
-        local dentroDoLimite = indice <= MAX_ITENS_MENU
-        dados.itemFrame.Visible = dentroDoLimite
-
-        -- Highlight 3D só quando MUITO perto
-        local perto = distancia <= DISTANCIA_VISUAL_3D
-        dados.highlight.Enabled = espAtivo and perto
-
-        -- Radar só pros N mais próximos e se ESP ligado
-        dados.arrowLabel.Visible = espAtivo and dentroDoLimite
-        dados.arrowDistText.Text = distanciaTexto .. "m"
-    end
-end
-
--- ============================================
--- ATUALIZAÇÃO LEVE (todo frame): posição das setas de radar
--- ============================================
-
-local function atualizarRadar()
-    if not espAtivo then return end
-
-    local viewportSize = camera.ViewportSize
-    local centro = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
-    local raioX = viewportSize.X / 2 - MARGEM_TELA
-    local raioY = viewportSize.Y / 2 - MARGEM_TELA
-
-    for fruta, dados in pairs(espAtivos) do
-        if dados.arrowLabel.Visible then
-            local posMundo = fruta:GetPivot().Position
-            local screenPos, dentroDaTela = camera:WorldToViewportPoint(posMundo)
-
-            if dentroDaTela and screenPos.Z > 0 then
-                -- Fruta visível na tela: mostra marcador direto na posição dela, sem seta
-                local x = math.clamp(screenPos.X, MARGEM_TELA, viewportSize.X - MARGEM_TELA)
-                local y = math.clamp(screenPos.Y, MARGEM_TELA, viewportSize.Y - MARGEM_TELA)
-                dados.arrowLabel.Position = UDim2.new(0, x, 0, y)
-                dados.arrowLabel.Rotation = 0
-            else
-                -- Fruta fora da tela: calcula ângulo e posiciona a seta na borda
-                local posRelativa = camera.CFrame:PointToObjectSpace(posMundo)
-
-                -- Se estiver atrás da câmera, inverte X pra seta não apontar pro lado errado
-                if posRelativa.Z > 0 then
-                    posRelativa = Vector3.new(-posRelativa.X, posRelativa.Y, -posRelativa.Z)
-                end
-
-                local angulo = math.atan2(posRelativa.X, -posRelativa.Z)
-                local x = centro.X + math.sin(angulo) * raioX
-                local y = centro.Y - math.cos(angulo) * raioY
-
-                dados.arrowLabel.Position = UDim2.new(0, x, 0, y)
-                dados.arrowLabel.Rotation = math.deg(angulo)
-            end
-        end
-    end
-end
-
--- ============================================
--- TOGGLE ON/OFF
--- ============================================
-
-local function definirEstadoESP(ligado)
-    espAtivo = ligado
-
-    if ligado then
-        botaoToggle.Text = "ESP: LIGADO"
-        botaoToggle.BackgroundColor3 = Color3.fromRGB(40, 160, 60)
-    else
-        botaoToggle.Text = "ESP: DESLIGADO"
-        botaoToggle.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-        -- Desliga tudo imediatamente
-        for _, dados in pairs(espAtivos) do
-            dados.highlight.Enabled = false
-            dados.arrowLabel.Visible = false
-        end
-    end
-end
-
-botaoToggle.MouseButton1Click:Connect(function()
-    definirEstadoESP(not espAtivo)
+Players.PlayerAdded:Connect(function(player)
+	task.spawn(function()
+		createGui(player)
+	end)
 end)
 
-UserInputService.InputBegan:Connect(function(input, processado)
-    if processado then return end
-    if input.KeyCode == TECLA_TOGGLE then
-        definirEstadoESP(not espAtivo)
-    end
-end)
-
--- ============================================
--- INICIALIZAÇÃO
--- ============================================
-
-local pastaFrutas = DROPPED_FRUITS_PATH:WaitForChild(NOME_PASTA_FRUTAS)
-
-pastaFrutas.ChildAdded:Connect(criarEntradaFruta)
-pastaFrutas.ChildRemoved:Connect(removerEntradaFruta)
-
-for _, fruta in ipairs(pastaFrutas:GetChildren()) do
-    criarEntradaFruta(fruta)
+for _, player in ipairs(Players:GetPlayers()) do
+	task.spawn(function()
+		createGui(player)
+	end)
 end
-
--- Loop pesado (throttled): roda a cada INTERVALO_ATUALIZACAO segundos
-RunService.Heartbeat:Connect(function(dt)
-    acumuladorTempo += dt
-    if acumuladorTempo >= INTERVALO_ATUALIZACAO then
-        acumuladorTempo = 0
-        atualizarListaEDistancias()
-    end
-end)
-
--- Loop leve (todo frame): move as setas de radar suavemente
-RunService.RenderStepped:Connect(atualizarRadar)
