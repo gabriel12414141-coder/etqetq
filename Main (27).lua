@@ -1,50 +1,44 @@
 --============================================================
 -- FRUIT NOTIFIER REWORK
--- LOCAL SCRIPT
--- Para uso no seu próprio jogo Roblox
+-- LOCAL SCRIPT - VERSÃO CORRIGIDA
 --============================================================
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local SoundService = game:GetService("SoundService")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
 --============================================================
--- CONFIGURAÇÃO
+-- CONFIG
 --============================================================
 
 local CONFIG = {
-	FolderName = "Fruits",
+	GUI_NAME = "FruitNotifier",
 
-	NotificationDuration = 6,
+	FOLDER_NAME = "Fruits",
 
-	MaxNotifications = 5,
+	MAX_NOTIFICATIONS = 5,
 
-	NotificationWidth = 340,
+	NOTIFICATION_TIME = 7,
 
-	NotificationHeight = 78,
+	WIDTH = 350,
 
-	TopOffset = 80,
+	HEIGHT = 82,
 
-	RightOffset = 20,
+	RIGHT = 20,
 
-	-- Deixe false se não quiser som
-	EnableSound = false,
+	TOP = 80,
 
-	-- Coloque o ID do seu som aqui
-	SoundId = "",
-
-	-- Detectar frutas que já estavam no mapa
-	CheckExistingFruits = true,
+	-- Procura frutas no Workspace inteiro.
+	SEARCH_WORKSPACE = true,
 }
 
 --============================================================
--- FRUTAS VÁLIDAS
+-- FRUTAS
 --============================================================
 
-local ValidFruits = {
+local FruitNames = {
 	["Rocket Fruit"] = true,
 	["Spin Fruit"] = true,
 	["Chop Fruit"] = true,
@@ -81,26 +75,25 @@ local ValidFruits = {
 -- REMOVE GUI ANTIGA
 --============================================================
 
-local OldGui = PlayerGui:FindFirstChild("FruitNotifier")
+local OldGui = PlayerGui:FindFirstChild(CONFIG.GUI_NAME)
 
 if OldGui then
 	OldGui:Destroy()
 end
 
 --============================================================
--- SCREEN GUI
+-- GUI PRINCIPAL
 --============================================================
 
-local Gui = Instance.new("ScreenGui")
+local ScreenGui = Instance.new("ScreenGui")
 
-Gui.Name = "FruitNotifier"
+ScreenGui.Name = CONFIG.GUI_NAME
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = false
+ScreenGui.DisplayOrder = 999
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-Gui.ResetOnSpawn = false
-Gui.IgnoreGuiInset = false
-
-Gui.DisplayOrder = 999
-
-Gui.Parent = PlayerGui
+ScreenGui.Parent = PlayerGui
 
 --============================================================
 -- CONTAINER
@@ -114,68 +107,46 @@ Container.AnchorPoint = Vector2.new(1, 0)
 
 Container.Position = UDim2.new(
 	1,
-	-CONFIG.RightOffset,
+	-CONFIG.RIGHT,
 	0,
-	CONFIG.TopOffset
+	CONFIG.TOP
 )
 
 Container.Size = UDim2.new(
 	0,
-	CONFIG.NotificationWidth,
+	CONFIG.WIDTH,
 	0,
 	500
 )
 
 Container.BackgroundTransparency = 1
 
-Container.Parent = Gui
+Container.Parent = ScreenGui
+
+local List = Instance.new("UIListLayout")
+
+List.Padding = UDim.new(0, 8)
+
+List.HorizontalAlignment = Enum.HorizontalAlignment.Right
+
+List.VerticalAlignment = Enum.VerticalAlignment.Top
+
+List.SortOrder = Enum.SortOrder.LayoutOrder
+
+List.Parent = Container
 
 --============================================================
--- LIST
+-- CONTROLE
 --============================================================
 
-local Layout = Instance.new("UIListLayout")
+local Notifications = {}
 
-Layout.Padding = UDim.new(0, 8)
+local Detected = {}
 
-Layout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-
-Layout.VerticalAlignment = Enum.VerticalAlignment.Top
-
-Layout.SortOrder = Enum.SortOrder.LayoutOrder
-
-Layout.Parent = Container
+local Order = 0
 
 --============================================================
--- NOTIFICAÇÕES ATIVAS
---============================================================
-
-local ActiveNotifications = {}
-
-local NotificationIndex = 0
-
---============================================================
--- SOM
---============================================================
-
-local NotificationSound
-
-if CONFIG.EnableSound and CONFIG.SoundId ~= "" then
-
-	NotificationSound = Instance.new("Sound")
-
-	NotificationSound.Name = "FruitNotificationSound"
-
-	NotificationSound.SoundId = CONFIG.SoundId
-
-	NotificationSound.Volume = 0.5
-
-	NotificationSound.Parent = SoundService
-
-end
-
---============================================================
--- OBTÉM NOME DA FRUTA
+-- NOME DA FRUTA
 --============================================================
 
 local function GetFruitName(Object)
@@ -187,8 +158,12 @@ local function GetFruitName(Object)
 	-- Attribute
 	local Attribute = Object:GetAttribute("FruitName")
 
-	if typeof(Attribute) == "string" and Attribute ~= "" then
-		return Attribute
+	if typeof(Attribute) == "string" then
+
+		if FruitNames[Attribute] then
+			return Attribute
+		end
+
 	end
 
 	-- StringValue
@@ -196,14 +171,14 @@ local function GetFruitName(Object)
 
 	if Value and Value:IsA("StringValue") then
 
-		if Value.Value ~= "" then
+		if FruitNames[Value.Value] then
 			return Value.Value
 		end
 
 	end
 
-	-- Nome do objeto
-	if ValidFruits[Object.Name] then
+	-- Nome direto
+	if FruitNames[Object.Name] then
 		return Object.Name
 	end
 
@@ -211,7 +186,7 @@ local function GetFruitName(Object)
 end
 
 --============================================================
--- OBTÉM POSIÇÃO
+-- POSIÇÃO
 --============================================================
 
 local function GetPosition(Object)
@@ -233,6 +208,16 @@ local function GetPosition(Object)
 
 		if Part then
 			return Part.Position
+		end
+
+	end
+
+	if Object:IsA("Tool") then
+
+		local Handle = Object:FindFirstChild("Handle")
+
+		if Handle and Handle:IsA("BasePart") then
+			return Handle.Position
 		end
 
 	end
@@ -263,10 +248,6 @@ local function GetDistance(Position)
 	return (Root.Position - Position).Magnitude
 end
 
---============================================================
--- FORMATA DISTÂNCIA
---============================================================
-
 local function FormatDistance(Distance)
 
 	if not Distance then
@@ -289,41 +270,20 @@ local function FormatDistance(Distance)
 end
 
 --============================================================
--- ATUALIZA DISTÂNCIA
+-- REMOVER CARD
 --============================================================
 
-local function UpdateDistance(Card, Position)
+local function RemoveCard(Card)
 
-	if not Card or not Card.Parent then
+	if not Card then
 		return
 	end
 
-	local DistanceLabel = Card:FindFirstChild(
-		"Distance"
-	)
-
-	if not DistanceLabel then
-		return
-	end
-
-	local Distance = GetDistance(Position)
-
-	DistanceLabel.Text =
-		"📍 " .. FormatDistance(Distance)
-end
-
---============================================================
--- REMOVER NOTIFICAÇÃO
---============================================================
-
-local function RemoveNotification(Card)
-
-	if not Card or not Card.Parent then
+	if not Card.Parent then
 		return
 	end
 
 	local Tween = TweenService:Create(
-
 		Card,
 
 		TweenInfo.new(
@@ -337,7 +297,7 @@ local function RemoveNotification(Card)
 				0,
 				0,
 				0,
-				CONFIG.NotificationHeight
+				CONFIG.HEIGHT
 			),
 
 			BackgroundTransparency = 1
@@ -352,15 +312,13 @@ local function RemoveNotification(Card)
 		Card:Destroy()
 	end
 
-	for Index, Object in ipairs(
-		ActiveNotifications
-	) do
+	for i, v in ipairs(Notifications) do
 
-		if Object == Card then
+		if v == Card then
 
 			table.remove(
-				ActiveNotifications,
-				Index
+				Notifications,
+				i
 			)
 
 			break
@@ -373,18 +331,14 @@ end
 -- CRIAR NOTIFICAÇÃO
 --============================================================
 
-local function CreateNotification(
-	FruitName,
-	Position
-)
+local function Notify(FruitName, Position)
 
 	-- Limite
-	while #ActiveNotifications >=
-		CONFIG.MaxNotifications do
+	while #Notifications >= CONFIG.MAX_NOTIFICATIONS do
 
 		local Oldest =
 			table.remove(
-				ActiveNotifications,
+				Notifications,
 				1
 			)
 
@@ -394,7 +348,7 @@ local function CreateNotification(
 
 	end
 
-	NotificationIndex += 1
+	Order += 1
 
 	--========================================================
 	-- CARD
@@ -402,19 +356,19 @@ local function CreateNotification(
 
 	local Card = Instance.new("Frame")
 
-	Card.Name = "FruitNotification"
+	Card.Name = "Fruit_" .. FruitName
 
-	Card.LayoutOrder = NotificationIndex
+	Card.LayoutOrder = Order
 
 	Card.Size = UDim2.new(
 		0,
 		0,
 		0,
-		CONFIG.NotificationHeight
+		CONFIG.HEIGHT
 	)
 
 	Card.BackgroundColor3 =
-		Color3.fromRGB(18, 18, 23)
+		Color3.fromRGB(22, 22, 28)
 
 	Card.BackgroundTransparency = 0.05
 
@@ -429,19 +383,19 @@ local function CreateNotification(
 	local Corner = Instance.new("UICorner")
 
 	Corner.CornerRadius =
-		UDim.new(0, 12)
+		UDim.new(0, 14)
 
 	Corner.Parent = Card
 
 	--========================================================
-	-- STROKE
+	-- BORDA
 	--========================================================
 
 	local Stroke = Instance.new("UIStroke")
 
-	Stroke.Thickness = 1
+	Stroke.Thickness = 1.5
 
-	Stroke.Transparency = 0.3
+	Stroke.Transparency = 0.25
 
 	Stroke.Parent = Card
 
@@ -454,16 +408,16 @@ local function CreateNotification(
 	Icon.Name = "Icon"
 
 	Icon.Position =
-		UDim2.new(0, 12, 0, 0)
+		UDim2.new(0, 10, 0, 0)
 
 	Icon.Size =
-		UDim2.new(0, 50, 1, 0)
+		UDim2.new(0, 55, 1, 0)
 
 	Icon.BackgroundTransparency = 1
 
 	Icon.Text = "🍎"
 
-	Icon.TextSize = 28
+	Icon.TextSize = 30
 
 	Icon.Font =
 		Enum.Font.GothamBold
@@ -474,35 +428,35 @@ local function CreateNotification(
 	-- NOME
 	--========================================================
 
-	local NameLabel = Instance.new("TextLabel")
+	local Name = Instance.new("TextLabel")
 
-	NameLabel.Name = "FruitName"
+	Name.Name = "FruitName"
 
-	NameLabel.Position =
-		UDim2.new(0, 68, 0, 10)
+	Name.Position =
+		UDim2.new(0, 70, 0, 11)
 
-	NameLabel.Size =
-		UDim2.new(1, -80, 0, 25)
+	Name.Size =
+		UDim2.new(1, -80, 0, 26)
 
-	NameLabel.BackgroundTransparency = 1
+	Name.BackgroundTransparency = 1
 
-	NameLabel.Text = FruitName
+	Name.Text = FruitName
 
-	NameLabel.TextColor3 =
+	Name.TextColor3 =
 		Color3.fromRGB(255, 255, 255)
 
-	NameLabel.TextSize = 17
+	Name.TextSize = 18
 
-	NameLabel.Font =
+	Name.Font =
 		Enum.Font.GothamBold
 
-	NameLabel.TextXAlignment =
+	Name.TextXAlignment =
 		Enum.TextXAlignment.Left
 
-	NameLabel.TextTruncate =
+	Name.TextTruncate =
 		Enum.TextTruncate.AtEnd
 
-	NameLabel.Parent = Card
+	Name.Parent = Card
 
 	--========================================================
 	-- DISTÂNCIA
@@ -513,7 +467,7 @@ local function CreateNotification(
 	DistanceLabel.Name = "Distance"
 
 	DistanceLabel.Position =
-		UDim2.new(0, 68, 0, 39)
+		UDim2.new(0, 70, 0, 40)
 
 	DistanceLabel.Size =
 		UDim2.new(1, -80, 0, 22)
@@ -534,38 +488,38 @@ local function CreateNotification(
 	DistanceLabel.Parent = Card
 
 	--========================================================
-	-- DISTÂNCIA INICIAL
+	-- ATUALIZA DISTÂNCIA
 	--========================================================
 
-	UpdateDistance(
-		Card,
-		Position
-	)
+	local function UpdateDistance()
+
+		if not Card.Parent then
+			return
+		end
+
+		local Distance =
+			GetDistance(Position)
+
+		DistanceLabel.Text =
+			"📍 " .. FormatDistance(Distance)
+	end
+
+	UpdateDistance()
 
 	--========================================================
 	-- GUARDA
 	--========================================================
 
 	table.insert(
-		ActiveNotifications,
+		Notifications,
 		Card
 	)
 
 	--========================================================
-	-- SOM
+	-- ANIMAÇÃO
 	--========================================================
 
-	if NotificationSound then
-
-		NotificationSound:Play()
-
-	end
-
-	--========================================================
-	-- ANIMAÇÃO ENTRADA
-	--========================================================
-
-	local OpenTween = TweenService:Create(
+	local Open = TweenService:Create(
 
 		Card,
 
@@ -580,12 +534,12 @@ local function CreateNotification(
 				1,
 				0,
 				0,
-				CONFIG.NotificationHeight
+				CONFIG.HEIGHT
 			)
 		}
 	)
 
-	OpenTween:Play()
+	Open:Play()
 
 	--========================================================
 	-- ATUALIZA DISTÂNCIA
@@ -597,12 +551,9 @@ local function CreateNotification(
 
 		while Card.Parent and
 			os.clock() - Start <
-			CONFIG.NotificationDuration do
+			CONFIG.NOTIFICATION_TIME do
 
-			UpdateDistance(
-				Card,
-				Position
-			)
+			UpdateDistance()
 
 			task.wait(0.5)
 
@@ -615,33 +566,26 @@ local function CreateNotification(
 	--========================================================
 
 	task.delay(
-		CONFIG.NotificationDuration,
+		CONFIG.NOTIFICATION_TIME,
 		function()
 
-			RemoveNotification(Card)
+			RemoveCard(Card)
 
 		end
 	)
-
 end
 
 --============================================================
--- CONTROLE DE FRUTAS JÁ NOTIFICADAS
+-- PROCESSAR FRUTA
 --============================================================
 
-local AlreadyNotified = {}
-
---============================================================
--- PROCESSAR OBJETO
---============================================================
-
-local function ProcessFruit(Object)
+local function ProcessObject(Object)
 
 	if not Object then
 		return
 	end
 
-	if AlreadyNotified[Object] then
+	if Detected[Object] then
 		return
 	end
 
@@ -652,10 +596,6 @@ local function ProcessFruit(Object)
 		return
 	end
 
-	if not ValidFruits[FruitName] then
-		return
-	end
-
 	local Position =
 		GetPosition(Object)
 
@@ -663,54 +603,86 @@ local function ProcessFruit(Object)
 		return
 	end
 
-	AlreadyNotified[Object] = true
+	Detected[Object] = true
 
-	CreateNotification(
+	print(
+		"[FruitNotifier] Fruta encontrada:",
+		FruitName
+	)
+
+	Notify(
 		FruitName,
 		Position
 	)
 
-	-- Limpa quando desaparecer
+	-- Permitir detectar novamente depois
 	Object.AncestryChanged:Connect(
 		function(_, Parent)
 
 			if not Parent then
-				AlreadyNotified[Object] = nil
+				Detected[Object] = nil
 			end
 
 		end
 	)
-
 end
 
 --============================================================
--- MONITORAR PASTA
+-- MONITORAR OBJETOS
 --============================================================
 
 local function MonitorFolder(Folder)
 
-	-- Frutas existentes
-	if CONFIG.CheckExistingFruits then
+	print(
+		"[FruitNotifier] Monitorando:",
+		Folder:GetFullName()
+	)
 
-		for _, Object in ipairs(
-			Folder:GetChildren()
-		) do
+	for _, Object in ipairs(
+		Folder:GetChildren()
+	) do
 
-			task.defer(
-				ProcessFruit,
-				Object
-			)
-
-		end
+		task.defer(
+			ProcessObject,
+			Object
+		)
 
 	end
 
-	-- Novas frutas
 	Folder.ChildAdded:Connect(
 		function(Object)
 
 			task.defer(
-				ProcessFruit,
+				ProcessObject,
+				Object
+			)
+
+		end
+	)
+end
+
+--============================================================
+-- MONITORAR WORKSPACE
+--============================================================
+
+if CONFIG.SEARCH_WORKSPACE then
+
+	for _, Object in ipairs(
+		workspace:GetDescendants()
+	) do
+
+		task.defer(
+			ProcessObject,
+			Object
+		)
+
+	end
+
+	workspace.DescendantAdded:Connect(
+		function(Object)
+
+			task.defer(
+				ProcessObject,
 				Object
 			)
 
@@ -720,12 +692,12 @@ local function MonitorFolder(Folder)
 end
 
 --============================================================
--- ENCONTRAR PASTA
+-- MONITORAR PASTA FRUITS
 --============================================================
 
 local FruitsFolder =
 	workspace:FindFirstChild(
-		CONFIG.FolderName
+		CONFIG.FOLDER_NAME
 	)
 
 if FruitsFolder then
@@ -734,29 +706,39 @@ if FruitsFolder then
 		FruitsFolder
 	)
 
-else
-
-	workspace.ChildAdded:Connect(
-		function(Object)
-
-			if Object.Name ==
-				CONFIG.FolderName then
-
-				MonitorFolder(
-					Object
-				)
-
-			end
-
-		end
-	)
-
 end
 
+workspace.ChildAdded:Connect(
+	function(Object)
+
+		if Object.Name ==
+			CONFIG.FOLDER_NAME then
+
+			MonitorFolder(
+				Object
+			)
+
+		end
+
+	end
+)
+
 --============================================================
--- DEBUG
+-- TESTE VISUAL
 --============================================================
 
 print(
-	"[FruitNotifier] Rework carregado."
+	"========================================"
+)
+
+print(
+	"[FruitNotifier] GUI carregada!"
+)
+
+print(
+	"[FruitNotifier] LocalScript funcionando!"
+)
+
+print(
+	"========================================"
 )
