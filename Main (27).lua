@@ -1,5 +1,5 @@
 --========================================================
--- FRUIT FINDER - TODAS AS FRUTAS
+-- FRUIT FINDER - VERSÃO COMPLETA
 -- Para o seu próprio jogo Roblox
 -- Coloque em ServerScriptService
 --========================================================
@@ -15,7 +15,6 @@ local UPDATE_TIME = 0.5
 
 local FRUITS = {
 
-	-- Comuns
 	["Rocket Fruit"] = {"RocketFruit", "Rocket"},
 	["Spin Fruit"] = {"SpinFruit", "Spin"},
 	["Blade Fruit"] = {"BladeFruit", "Blade"},
@@ -24,7 +23,6 @@ local FRUITS = {
 	["Smoke Fruit"] = {"SmokeFruit", "Smoke"},
 	["Spike Fruit"] = {"SpikeFruit", "Spike"},
 
-	-- Elementais
 	["Flame Fruit"] = {"FlameFruit", "Flame"},
 	["Ice Fruit"] = {"IceFruit", "Ice"},
 	["Sand Fruit"] = {"SandFruit", "Sand"},
@@ -32,14 +30,12 @@ local FRUITS = {
 	["Light Fruit"] = {"LightFruit", "Light"},
 	["Magma Fruit"] = {"MagmaFruit", "Magma"},
 
-	-- Feras / outras
 	["Falcon Fruit"] = {"FalconFruit", "Falcon"},
 	["Diamond Fruit"] = {"DiamondFruit", "Diamond"},
 	["Rubber Fruit"] = {"RubberFruit", "Rubber"},
 	["Barrier Fruit"] = {"BarrierFruit", "Barrier"},
 	["Ghost Fruit"] = {"GhostFruit", "Ghost"},
 
-	-- Raras
 	["Quake Fruit"] = {"QuakeFruit", "Quake"},
 	["Buddha Fruit"] = {"BuddhaFruit", "Buddha"},
 	["Love Fruit"] = {"LoveFruit", "Love"},
@@ -48,12 +44,12 @@ local FRUITS = {
 	["Phoenix Fruit"] = {"PhoenixFruit", "Phoenix"},
 	["Portal Fruit"] = {"PortalFruit", "Portal"},
 
-	-- Lendárias
 	["Rumble Fruit"] = {"RumbleFruit", "Rumble"},
 	["Pain Fruit"] = {"PainFruit", "Pain"},
 	["Blizzard Fruit"] = {"BlizzardFruit", "Blizzard"},
 	["Gravity Fruit"] = {"GravityFruit", "Gravity"},
 	["Mammoth Fruit"] = {"MammothFruit", "Mammoth"},
+
 	["T-Rex Fruit"] = {
 		"TRexFruit",
 		"TrexFruit",
@@ -61,12 +57,12 @@ local FRUITS = {
 		"T-Rex"
 	},
 
-	-- Míticas
 	["Dough Fruit"] = {"DoughFruit", "Dough"},
 	["Shadow Fruit"] = {"ShadowFruit", "Shadow"},
 	["Venom Fruit"] = {"VenomFruit", "Venom"},
 	["Control Fruit"] = {"ControlFruit", "Control"},
 	["Spirit Fruit"] = {"SpiritFruit", "Spirit"},
+
 	["Gas Fruit"] = {"GasFruit", "Gas"},
 	["Yeti Fruit"] = {"YetiFruit", "Yeti"},
 	["Leopard Fruit"] = {"LeopardFruit", "Leopard"},
@@ -75,7 +71,7 @@ local FRUITS = {
 }
 
 --========================================================
--- NORMALIZAR TEXTO
+-- NORMALIZAR
 --========================================================
 
 local function normalize(text)
@@ -92,7 +88,7 @@ local function normalize(text)
 end
 
 --========================================================
--- IDENTIFICAR PELO NOME DO MODELO
+-- IDENTIFICAR PELO NOME
 --========================================================
 
 local function identifyByName(fruit)
@@ -120,16 +116,13 @@ local function identifyByName(fruit)
 
 		for _, objectName in ipairs(names) do
 
-			local normalizedObject =
+			local objectNormalized =
 				normalize(objectName)
 
 			for _, alias in ipairs(aliases) do
 
-				local normalizedAlias =
-					normalize(alias)
-
-				if normalizedObject ==
-					normalizedAlias then
+				if objectNormalized ==
+					normalize(alias) then
 
 					return displayName
 				end
@@ -141,7 +134,7 @@ local function identifyByName(fruit)
 end
 
 --========================================================
--- ATRIBUTOS
+-- IDENTIFICAR POR ATTRIBUTES
 --========================================================
 
 local function identifyByAttributes(fruit)
@@ -178,13 +171,11 @@ local function identifyByAttributes(fruit)
 
 				for _, alias in ipairs(aliases) do
 
-					local normalizedAlias =
+					local aliasText =
 						normalize(alias)
 
-					if keyText ==
-						normalizedAlias
-						or valueText ==
-						normalizedAlias then
+					if keyText == aliasText
+						or valueText == aliasText then
 
 						return displayName
 					end
@@ -197,29 +188,155 @@ local function identifyByAttributes(fruit)
 end
 
 --========================================================
--- IDENTIFICAÇÃO FINAL
+-- IDENTIFICAÇÃO
 --========================================================
 
 local function identifyFruit(fruit)
 
-	-- 1. Nome do modelo/objetos
-	local result =
+	local nameResult =
 		identifyByName(fruit)
 
-	if result then
-		return result
+	if nameResult then
+		return nameResult
 	end
 
-	-- 2. Attributes
-	result =
+	local attributeResult =
 		identifyByAttributes(fruit)
 
-	if result then
-		return result
+	if attributeResult then
+		return attributeResult
 	end
 
-	-- 3. Não inventar nome
 	return "Fruit"
+end
+
+--========================================================
+-- PARTE PRINCIPAL DA FRUTA
+--========================================================
+
+local function getFruitPart(fruit)
+
+	if fruit.PrimaryPart then
+		return fruit.PrimaryPart
+	end
+
+	local handle =
+		fruit:FindFirstChild(
+			"Handle",
+			true
+		)
+
+	if handle and handle:IsA("BasePart") then
+		return handle
+	end
+
+	return fruit:FindFirstChildWhichIsA(
+		"BasePart",
+		true
+	)
+end
+
+--========================================================
+-- TEXTO FLUTUANTE
+--========================================================
+
+local function createFruitDisplay(fruit)
+
+	local part =
+		getFruitPart(fruit)
+
+	if not part then
+		return
+	end
+
+	local old =
+		fruit:FindFirstChild(
+			"FruitNameDisplay"
+		)
+
+	if old then
+		old:Destroy()
+	end
+
+	local billboard =
+		Instance.new(
+			"BillboardGui"
+		)
+
+	billboard.Name =
+		"FruitNameDisplay"
+
+	billboard.Adornee =
+		part
+
+	billboard.Size =
+		UDim2.fromOffset(
+			180,
+			45
+		)
+
+	billboard.StudsOffset =
+		Vector3.new(
+			0,
+			3,
+			0
+		)
+
+	billboard.AlwaysOnTop =
+		true
+
+	billboard.MaxDistance =
+		1000
+
+	billboard.LightInfluence =
+		0
+
+	billboard.Parent =
+		fruit
+
+	local label =
+		Instance.new(
+			"TextLabel"
+		)
+
+	label.Size =
+		UDim2.fromScale(
+			1,
+			1
+		)
+
+	label.BackgroundTransparency =
+		1
+
+	label.Text =
+		"🍎 " ..
+		identifyFruit(fruit)
+
+	label.TextColor3 =
+		Color3.new(
+			1,
+			1,
+			1
+		)
+
+	label.TextStrokeColor3 =
+		Color3.new(
+			0,
+			0,
+			0
+		)
+
+	label.TextStrokeTransparency =
+		0.25
+
+	label.TextScaled =
+		true
+
+	label.Font =
+		Enum.Font.GothamBold
+
+	label.Parent =
+		billboard
 end
 
 --========================================================
@@ -268,12 +385,15 @@ local function createGui(player)
 	end
 
 	local gui =
-		Instance.new("ScreenGui")
+		Instance.new(
+			"ScreenGui"
+		)
 
 	gui.Name =
 		"FruitFinder"
 
-	gui.ResetOnSpawn = false
+	gui.ResetOnSpawn =
+		false
 
 	gui.Parent =
 		playerGui
@@ -283,7 +403,9 @@ local function createGui(player)
 	--====================================================
 
 	local main =
-		Instance.new("Frame")
+		Instance.new(
+			"Frame"
+		)
 
 	main.Size =
 		UDim2.fromOffset(
@@ -304,26 +426,37 @@ local function createGui(player)
 			24
 		)
 
-	main.BorderSizePixel = 0
+	main.BorderSizePixel =
+		0
 
-	main.Active = true
+	main.Active =
+		true
 
-	main.Parent = gui
+	main.Parent =
+		gui
 
 	local corner =
-		Instance.new("UICorner")
+		Instance.new(
+			"UICorner"
+		)
 
 	corner.CornerRadius =
-		UDim.new(0,10)
+		UDim.new(
+			0,
+			10
+		)
 
-	corner.Parent = main
+	corner.Parent =
+		main
 
 	--====================================================
-	-- HEADER
+	-- CABEÇALHO
 	--====================================================
 
 	local header =
-		Instance.new("Frame")
+		Instance.new(
+			"Frame"
+		)
 
 	header.Size =
 		UDim2.new(
@@ -340,14 +473,19 @@ local function createGui(player)
 			38
 		)
 
-	header.BorderSizePixel = 0
+	header.BorderSizePixel =
+		0
 
-	header.Active = true
+	header.Active =
+		true
 
-	header.Parent = main
+	header.Parent =
+		main
 
 	local title =
-		Instance.new("TextLabel")
+		Instance.new(
+			"TextLabel"
+		)
 
 	title.Size =
 		UDim2.new(
@@ -363,7 +501,8 @@ local function createGui(player)
 			0
 		)
 
-	title.BackgroundTransparency = 1
+	title.BackgroundTransparency =
+		1
 
 	title.Text =
 		"🍎 FRUIT FINDER"
@@ -375,7 +514,8 @@ local function createGui(player)
 			1
 		)
 
-	title.TextSize = 18
+	title.TextSize =
+		18
 
 	title.Font =
 		Enum.Font.GothamBold
@@ -383,14 +523,17 @@ local function createGui(player)
 	title.TextXAlignment =
 		Enum.TextXAlignment.Left
 
-	title.Parent = header
+	title.Parent =
+		header
 
 	--====================================================
 	-- CONTADOR
 	--====================================================
 
 	local counter =
-		Instance.new("TextLabel")
+		Instance.new(
+			"TextLabel"
+		)
 
 	counter.Size =
 		UDim2.fromOffset(
@@ -406,7 +549,8 @@ local function createGui(player)
 			0
 		)
 
-	counter.BackgroundTransparency = 1
+	counter.BackgroundTransparency =
+		1
 
 	counter.Text =
 		"0"
@@ -418,19 +562,23 @@ local function createGui(player)
 			180
 		)
 
-	counter.TextSize = 14
+	counter.TextSize =
+		14
 
 	counter.Font =
 		Enum.Font.GothamBold
 
-	counter.Parent = header
+	counter.Parent =
+		header
 
 	--====================================================
-	-- MINIMIZAR
+	-- BOTÃO MINIMIZAR
 	--====================================================
 
 	local minimize =
-		Instance.new("TextButton")
+		Instance.new(
+			"TextButton"
+		)
 
 	minimize.Size =
 		UDim2.fromOffset(
@@ -446,7 +594,8 @@ local function createGui(player)
 			7
 		)
 
-	minimize.BackgroundTransparency = 1
+	minimize.BackgroundTransparency =
+		1
 
 	minimize.Text =
 		"−"
@@ -458,19 +607,23 @@ local function createGui(player)
 			1
 		)
 
-	minimize.TextSize = 25
+	minimize.TextSize =
+		25
 
 	minimize.Font =
 		Enum.Font.GothamBold
 
-	minimize.Parent = header
+	minimize.Parent =
+		header
 
 	--====================================================
 	-- LISTA
 	--====================================================
 
 	local list =
-		Instance.new("ScrollingFrame")
+		Instance.new(
+			"ScrollingFrame"
+		)
 
 	list.Position =
 		UDim2.fromOffset(
@@ -486,16 +639,22 @@ local function createGui(player)
 			-75
 		)
 
-	list.BackgroundTransparency = 1
+	list.BackgroundTransparency =
+		1
 
-	list.BorderSizePixel = 0
+	list.BorderSizePixel =
+		0
 
-	list.ScrollBarThickness = 4
+	list.ScrollBarThickness =
+		4
 
-	list.Parent = main
+	list.Parent =
+		main
 
 	local layout =
-		Instance.new("UIListLayout")
+		Instance.new(
+			"UIListLayout"
+		)
 
 	layout.Padding =
 		UDim.new(
@@ -503,14 +662,21 @@ local function createGui(player)
 			6
 		)
 
-	layout.Parent = list
+	layout.SortOrder =
+		Enum.SortOrder.LayoutOrder
+
+	layout.Parent =
+		list
 
 	--====================================================
 	-- ARRASTAR
 	--====================================================
 
-	local dragging = false
+	local dragging =
+		false
+
 	local dragStart
+
 	local startPosition
 
 	header.InputBegan:Connect(
@@ -519,7 +685,8 @@ local function createGui(player)
 			if input.UserInputType ==
 				Enum.UserInputType.MouseButton1 then
 
-				dragging = true
+				dragging =
+					true
 
 				dragStart =
 					input.Position
@@ -536,7 +703,8 @@ local function createGui(player)
 			if input.UserInputType ==
 				Enum.UserInputType.MouseButton1 then
 
-				dragging = false
+				dragging =
+					false
 			end
 		end
 	)
@@ -552,8 +720,8 @@ local function createGui(player)
 				Enum.UserInputType.MouseMovement then
 
 				local delta =
-					input.Position
-					- dragStart
+					input.Position -
+					dragStart
 
 				main.Position =
 					UDim2.new(
@@ -570,10 +738,11 @@ local function createGui(player)
 	)
 
 	--====================================================
-	-- MINIMIZAÇÃO
+	-- MINIMIZAR
 	--====================================================
 
-	local minimized = false
+	local minimized =
+		false
 
 	minimize.MouseButton1Click:Connect(
 		function()
@@ -583,7 +752,8 @@ local function createGui(player)
 
 			if minimized then
 
-				list.Visible = false
+				list.Visible =
+					false
 
 				main.Size =
 					UDim2.fromOffset(
@@ -596,7 +766,8 @@ local function createGui(player)
 
 			else
 
-				list.Visible = true
+				list.Visible =
+					true
 
 				main.Size =
 					UDim2.fromOffset(
@@ -611,7 +782,7 @@ local function createGui(player)
 	)
 
 	--====================================================
-	-- ATUALIZAÇÃO
+	-- ATUALIZAR
 	--====================================================
 
 	local function update()
@@ -635,129 +806,102 @@ local function createGui(player)
 				#fruits
 			)
 
-		if #fruits == 0 then
+		for _, fruit in ipairs(
+			fruits
+		) do
 
-			local empty =
+			-- Nome sobre a fruta
+			createFruitDisplay(
+				fruit
+			)
+
+			-- Item no painel
+			local item =
+				Instance.new(
+					"Frame"
+				)
+
+			item.Size =
+				UDim2.new(
+					1,
+					-5,
+					0,
+					50
+				)
+
+			item.BackgroundColor3 =
+				Color3.fromRGB(
+					45,
+					45,
+					45
+				)
+
+			item.BorderSizePixel =
+				0
+
+			item.Parent =
+				list
+
+			local itemCorner =
+				Instance.new(
+					"UICorner"
+				)
+
+			itemCorner.CornerRadius =
+				UDim.new(
+					0,
+					8
+				)
+
+			itemCorner.Parent =
+				item
+
+			local label =
 				Instance.new(
 					"TextLabel"
 				)
 
-			empty.Size =
+			label.Size =
 				UDim2.new(
 					1,
-					-10,
-					0,
-					40
+					-20,
+					1,
+					0
 				)
 
-			empty.BackgroundTransparency = 1
-
-			empty.Text =
-				"Nenhuma fruta encontrada"
-
-			empty.TextColor3 =
-				Color3.fromRGB(
-					160,
-					160,
-					160
+			label.Position =
+				UDim2.fromOffset(
+					10,
+					0
 				)
 
-			empty.TextSize = 14
+			label.BackgroundTransparency =
+				1
 
-			empty.Font =
-				Enum.Font.Gotham
+			label.Text =
+				"🍎 " ..
+				identifyFruit(
+					fruit
+				)
 
-			empty.Parent = list
+			label.TextColor3 =
+				Color3.new(
+					1,
+					1,
+					1
+				)
 
-		else
+			label.TextSize =
+				14
 
-			for _, fruit in ipairs(
-				fruits
-			) do
+			label.Font =
+				Enum.Font.GothamBold
 
-				local item =
-					Instance.new("Frame")
+			label.TextXAlignment =
+				Enum.TextXAlignment.Left
 
-				item.Size =
-					UDim2.new(
-						1,
-						-5,
-						0,
-						50
-					)
-
-				item.BackgroundColor3 =
-					Color3.fromRGB(
-						45,
-						45,
-						45
-					)
-
-				item.BorderSizePixel = 0
-
-				item.Parent = list
-
-				local itemCorner =
-					Instance.new(
-						"UICorner"
-					)
-
-				itemCorner.CornerRadius =
-					UDim.new(
-						0,
-						8
-					)
-
-				itemCorner.Parent =
-					item
-
-				local name =
-					identifyFruit(
-						fruit
-					)
-
-				local label =
-					Instance.new(
-						"TextLabel"
-					)
-
-				label.Size =
-					UDim2.new(
-						1,
-						-20,
-						1,
-						0
-					)
-
-				label.Position =
-					UDim2.fromOffset(
-						10,
-						0
-					)
-
-				label.BackgroundTransparency = 1
-
-				label.Text =
-					"🍎 " .. name
-
-				label.TextColor3 =
-					Color3.new(
-						1,
-						1,
-						1
-					)
-
-				label.TextSize = 14
-
-				label.Font =
-					Enum.Font.GothamBold
-
-				label.TextXAlignment =
-					Enum.TextXAlignment.Left
-
-				label.Parent =
-					item
-			end
+			label.Parent =
+				item
 		end
 
 		list.CanvasSize =
@@ -788,7 +932,7 @@ local function createGui(player)
 end
 
 --========================================================
--- PLAYERS
+-- JOGADORES
 --========================================================
 
 Players.PlayerAdded:Connect(
