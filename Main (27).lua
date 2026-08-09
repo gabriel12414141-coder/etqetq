@@ -13,7 +13,7 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 -- CONFIGURAÇÃO
 --========================================================
 
-local FRUIT_FOLDER_NAME = "Fruits"
+local FRUIT_FOLDER_NAME = "Fruit"
 local SCAN_INTERVAL = 0.5
 
 local FruitNames = {
