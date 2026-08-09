@@ -1,8 +1,9 @@
 ```lua
 --============================================================
--- DRAGON FRUIT NOTIFIER
+-- FRUIT NOTIFIER - ALL FRUITS
+-- Nome esperado: "Nome Fruit"
+-- Ex.: Dragon Fruit, Dough Fruit, Kitsune Fruit
 -- TESTE CONTROLADO
--- LocalScript
 --============================================================
 
 local Players = game:GetService("Players")
@@ -18,45 +19,104 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- CONFIGURAÇÃO
 --============================================================
 
-local FRUIT_NAME = "Dragon Fruit"
-
 local RADIUS = 9000
 local CHECK_INTERVAL = 0.5
 
 local Enabled = true
 local Minimized = false
 
--- Coloque aqui um áudio autorizado pelo seu próprio jogo.
+-- Coloque um SoundId autorizado pelo seu próprio place.
 local SOUND_ID = "rbxassetid://0"
 
 --============================================================
--- LIMPAR GUI ANTERIOR
+-- LISTA DAS FRUTAS
 --============================================================
 
-local old = playerGui:FindFirstChild("DragonFruitNotifier")
+local FruitNames = {
+	"Rocket",
+	"Spin",
+	"Blade",
+	"Spring",
+	"Bomb",
+	"Smoke",
+	"Spike",
+	"Flame",
+	"Ice",
+	"Sand",
+	"Dark",
+	"Eagle",
+	"Diamond",
+	"Light",
+	"Rubber",
+	"Ghost",
+	"Magma",
+	"Quake",
+	"Buddha",
+	"Love",
+	"Creation",
+	"Spider",
+	"Sound",
+	"Phoenix",
+	"Portal",
+	"Lightning",
+	"Pain",
+	"Blizzard",
+	"Gravity",
+	"Mammoth",
+	"T-Rex",
+	"Dough",
+	"Shadow",
+	"Venom",
+	"Gas",
+	"Spirit",
+	"Tiger",
+	"Yeti",
+	"Kitsune",
+	"Control",
+	"Dragon"
+}
+
+--============================================================
+-- LOOKUP
+--============================================================
+
+local FruitLookup = {}
+
+for _, name in ipairs(FruitNames) do
+	FruitLookup[name .. " Fruit"] = name .. " Fruit"
+end
+
+--============================================================
+-- LIMPAR GUI ANTIGO
+--============================================================
+
+local old = playerGui:FindFirstChild("FruitNotifierCompact")
 
 if old then
 	old:Destroy()
 end
 
 --============================================================
--- GUI
+-- SCREEN GUI
 --============================================================
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "DragonFruitNotifier"
+
+gui.Name = "FruitNotifierCompact"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = false
 gui.DisplayOrder = 999
+
 gui.Parent = playerGui
 
 --============================================================
--- JANELA
+-- MAIN
 --============================================================
 
 local main = Instance.new("Frame")
 
 main.Name = "Main"
+
 main.Size = UDim2.fromOffset(270,210)
 main.Position = UDim2.new(0.5,-135,0.65,0)
 
@@ -69,10 +129,10 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0,10)
 mainCorner.Parent = main
 
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(65,65,80)
-stroke.Thickness = 1
-stroke.Parent = main
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(65,65,80)
+mainStroke.Thickness = 1
+mainStroke.Parent = main
 
 --============================================================
 -- HEADER
@@ -81,6 +141,7 @@ stroke.Parent = main
 local header = Instance.new("Frame")
 
 header.Name = "Header"
+
 header.Size = UDim2.new(1,0,0,38)
 
 header.BackgroundColor3 = Color3.fromRGB(25,25,34)
@@ -106,7 +167,7 @@ dragArea.Position = UDim2.fromOffset(0,0)
 dragArea.BackgroundTransparency = 1
 dragArea.BorderSizePixel = 0
 
-dragArea.Text = "🐉  Dragon Fruit"
+dragArea.Text = "🍎  Fruit Notifier"
 dragArea.TextColor3 = Color3.new(1,1,1)
 dragArea.TextSize = 14
 dragArea.Font = Enum.Font.GothamBold
@@ -193,7 +254,7 @@ status.Position = UDim2.fromOffset(10,8)
 status.BackgroundColor3 = Color3.fromRGB(30,30,40)
 status.BorderSizePixel = 0
 
-status.Text = "● ATIVO  •  9000 studs"
+status.Text = "● ATIVO • 9000 studs"
 status.TextColor3 = Color3.fromRGB(80,255,120)
 status.TextSize = 11
 status.Font = Enum.Font.GothamBold
@@ -237,7 +298,7 @@ layout.Parent = history
 
 local sound = Instance.new("Sound")
 
-sound.Name = "DragonFruitSound"
+sound.Name = "FruitNotifySound"
 sound.SoundId = SOUND_ID
 sound.Volume = 1
 
@@ -252,6 +313,7 @@ local function playSound()
 	pcall(function()
 		sound:Play()
 	end)
+
 end
 
 --============================================================
@@ -291,10 +353,11 @@ local function addHistory(text)
 		)
 
 	end)
+
 end
 
 --============================================================
--- POSIÇÃO DO OBJETO
+-- POSIÇÃO
 --============================================================
 
 local function getPosition(object)
@@ -308,55 +371,44 @@ local function getPosition(object)
 	end
 
 	return nil
+
 end
 
 --============================================================
--- DETECTOR EXATO
+-- DETECTOR
 --============================================================
 
-local function isDragonFruit(object)
+local function getFruitName(object)
 
-	-- Somente Model ou BasePart
 	if not object:IsA("Model")
 		and not object:IsA("BasePart") then
 
-		return false
+		return nil
 	end
 
-	-- Nome EXATAMENTE igual
-	if object.Name ~= FRUIT_NAME then
-		return false
-	end
+	-- SOMENTE:
+	-- Rocket Fruit
+	-- Dragon Fruit
+	-- Dough Fruit
+	-- etc.
 
-	-- Evita detectar objeto interno de outro Dragon Fruit
-	local parent = object.Parent
-
-	while parent and parent ~= workspace do
-
-		if parent.Name == FRUIT_NAME then
-			return false
-		end
-
-		parent = parent.Parent
-	end
-
-	return true
+	return FruitLookup[object.Name]
 end
 
 --============================================================
--- REGISTRO
+-- FRUTAS JÁ CONHECIDAS
 --============================================================
 
 local Known = {}
 
+-- true enquanto estamos fazendo a primeira varredura
 local firstScan = true
-local timer = 0
 
 --============================================================
 -- NOTIFICAÇÃO
 --============================================================
 
-local function notify(distance,existing)
+local function notify(fruitName,distance,existing)
 
 	local prefix
 
@@ -364,36 +416,44 @@ local function notify(distance,existing)
 		prefix = "📦 EXISTENTE"
 	else
 		prefix = "🆕 NOVO SPAWN"
+
 		playSound()
 	end
 
-	addHistory(
+	local message =
 		prefix
-		.."  Dragon Fruit"
-		.."  •  "
+		.."  "
+		..fruitName
+		.." • "
 		..math.floor(distance)
 		.." studs"
-	)
+
+	addHistory(message)
 
 	pcall(function()
 
 		StarterGui:SetCore(
 			"SendNotification",
 			{
-				Title = "🐉 "..prefix,
-				Text = "Dragon Fruit • "
+				Title = "🍎 "..prefix,
+				Text =
+					fruitName
+					.." • "
 					..math.floor(distance)
 					.." studs",
-				Duration = 4
+				Duration = 5
 			}
 		)
 
 	end)
+
 end
 
 --============================================================
--- DETECÇÃO
+-- LOOP DE DETECÇÃO
 --============================================================
+
+local timer = 0
 
 RunService.Heartbeat:Connect(function(delta)
 
@@ -422,9 +482,12 @@ RunService.Heartbeat:Connect(function(delta)
 		return
 	end
 
+	-- Procura todas as frutas pelo nome exato
 	for _,object in ipairs(workspace:GetDescendants()) do
 
-		if isDragonFruit(object) then
+		local fruitName = getFruitName(object)
+
+		if fruitName then
 
 			local position = getPosition(object)
 
@@ -438,10 +501,12 @@ RunService.Heartbeat:Connect(function(delta)
 					if not Known[object] then
 
 						Known[object] = {
+							Name = fruitName,
 							FirstSeen = os.time()
 						}
 
 						notify(
+							fruitName,
 							distance,
 							firstScan
 						)
@@ -453,6 +518,7 @@ RunService.Heartbeat:Connect(function(delta)
 	end
 
 	firstScan = false
+
 end)
 
 --============================================================
@@ -463,18 +529,24 @@ task.spawn(function()
 
 	while task.wait(1) do
 
-		for object in pairs(Known) do
+		for object,data in pairs(Known) do
 
 			if object.Parent == nil then
 
 				addHistory(
-					"🗑️ Dragon Fruit • DESPAWN"
+					"🗑️ "
+					..data.Name
+					.." • DESPAWN"
 				)
 
 				Known[object] = nil
+
 			end
+
 		end
+
 	end
+
 end)
 
 --============================================================
@@ -487,17 +559,22 @@ status.Activated:Connect(function()
 
 	if Enabled then
 
-		status.Text = "● ATIVO  •  9000 studs"
+		status.Text =
+			"● ATIVO • 9000 studs"
+
 		status.TextColor3 =
 			Color3.fromRGB(80,255,120)
 
 	else
 
-		status.Text = "● DESATIVADO"
+		status.Text =
+			"● DESATIVADO"
+
 		status.TextColor3 =
 			Color3.fromRGB(255,80,80)
 
 	end
+
 end)
 
 --============================================================
@@ -528,6 +605,7 @@ minimize.Activated:Connect(function()
 		minimize.Text = "−"
 
 	end
+
 end)
 
 --============================================================
@@ -562,6 +640,7 @@ dragArea.InputBegan:Connect(function(input)
 		startPosition = main.Position
 
 	end
+
 end)
 
 UserInputService.InputChanged:Connect(function(input)
@@ -601,31 +680,15 @@ UserInputService.InputEnded:Connect(function(input)
 		dragging = false
 
 	end
+
 end)
 
 --============================================================
 -- INICIALIZAÇÃO
 --============================================================
 
-addHistory("✓ Dragon Fruit detector iniciado")
-addHistory("✓ Procurando nome exato: Dragon Fruit")
+addHistory("✓ Fruit Notifier iniciado")
+addHistory("✓ 42 frutas configuradas")
+addHistory("✓ Formato: Nome Fruit")
 addHistory("✓ Raio: 9000 studs")
 ```
-
-### O detector agora é estrito
-
-Ele **não** considera:
-
-* `Dragon`
-* `DragonFruit`
-* `Dragon Fruit Model`
-* `Dragon Fruit Handle`
-* `Dragon Fruit Tool`
-
-Ele só considera um `Model` ou `BasePart` cujo nome seja exatamente:
-
-```text
-Dragon Fruit
-```
-
-E o GUI continua podendo ser **arrastado pelo título** e **minimizado pelo `−`**.
