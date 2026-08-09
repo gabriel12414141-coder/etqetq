@@ -1,674 +1,240 @@
-```lua
 --============================================================
--- FRUIT FINDER / NOTIFIER V2
--- LocalScript
--- StarterPlayer > StarterPlayerScripts
+-- FRUIT NOTIFIER REWORK
+-- LOCAL SCRIPT
+-- Para uso no seu próprio jogo Roblox
 --============================================================
 
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
 --============================================================
 -- CONFIGURAÇÃO
 --============================================================
 
 local CONFIG = {
-	ScanInterval = 2,
-	DistanceUpdate = 0.15,
+	FolderName = "Fruits",
 
-	ShowDistance = true,
-	ShowTags = true,
+	NotificationDuration = 6,
 
-	TagTextSize = 13,
-	TagHeight = 4,
+	MaxNotifications = 5,
 
-	WindowWidth = 350,
-	WindowHeight = 420,
+	NotificationWidth = 340,
 
-	-- distância máxima para mostrar
-	MaxDistance = math.huge,
+	NotificationHeight = 78,
+
+	TopOffset = 80,
+
+	RightOffset = 20,
+
+	-- Deixe false se não quiser som
+	EnableSound = false,
+
+	-- Coloque o ID do seu som aqui
+	SoundId = "",
+
+	-- Detectar frutas que já estavam no mapa
+	CheckExistingFruits = true,
 }
 
 --============================================================
--- FRUTAS
+-- FRUTAS VÁLIDAS
 --============================================================
 
-local FRUITS = {
-	Rocket = true,
-	Spin = true,
-	Blade = true,
-	Spring = true,
-	Bomb = true,
-	Smoke = true,
-	Spike = true,
-	Flame = true,
-	Ice = true,
-	Sand = true,
-	Dark = true,
-	Eagle = true,
-	Diamond = true,
-	Light = true,
-	Rubber = true,
-	Ghost = true,
-	Magma = true,
-	Quake = true,
-	Buddha = true,
-	Love = true,
-	Creation = true,
-	Spider = true,
-	Sound = true,
-	Phoenix = true,
-	Portal = true,
-	Lightning = true,
-	Pain = true,
-	Blizzard = true,
-	Gravity = true,
-	Mammoth = true,
-	["T-Rex"] = true,
-	Dough = true,
-	Shadow = true,
-	Venom = true,
-	Gas = true,
-	Spirit = true,
-	Tiger = true,
-	Yeti = true,
-	Kitsune = true,
-	Control = true,
-	Dragon = true,
+local ValidFruits = {
+	["Rocket Fruit"] = true,
+	["Spin Fruit"] = true,
+	["Chop Fruit"] = true,
+	["Spring Fruit"] = true,
+	["Bomb Fruit"] = true,
+	["Smoke Fruit"] = true,
+	["Flame Fruit"] = true,
+	["Ice Fruit"] = true,
+	["Sand Fruit"] = true,
+	["Dark Fruit"] = true,
+	["Light Fruit"] = true,
+	["Magma Fruit"] = true,
+	["Quake Fruit"] = true,
+	["Buddha Fruit"] = true,
+	["Love Fruit"] = true,
+	["Spider Fruit"] = true,
+	["Phoenix Fruit"] = true,
+	["Portal Fruit"] = true,
+	["Rumble Fruit"] = true,
+	["Blizzard Fruit"] = true,
+	["Mammoth Fruit"] = true,
+	["T-Rex Fruit"] = true,
+	["Dough Fruit"] = true,
+	["Shadow Fruit"] = true,
+	["Venom Fruit"] = true,
+	["Control Fruit"] = true,
+	["Spirit Fruit"] = true,
+	["Leopard Fruit"] = true,
+	["Kitsune Fruit"] = true,
+	["Dragon Fruit"] = true,
 }
-
---============================================================
--- LOOKUP CASE-INSENSITIVE
---============================================================
-
-local FruitLookup = {}
-
-for fruitName in pairs(FRUITS) do
-	FruitLookup[fruitName:lower()] = fruitName
-end
-
---============================================================
--- ESTADO
---============================================================
-
-local Enabled = true
-local Minimized = false
-
-local Detected = {}
-local Tags = {}
 
 --============================================================
 -- REMOVE GUI ANTIGA
 --============================================================
 
-local oldGui = playerGui:FindFirstChild("FruitFinder")
+local OldGui = PlayerGui:FindFirstChild("FruitNotifier")
 
-if oldGui then
-	oldGui:Destroy()
+if OldGui then
+	OldGui:Destroy()
 end
 
 --============================================================
--- GUI
+-- SCREEN GUI
 --============================================================
 
-local gui = Instance.new("ScreenGui")
+local Gui = Instance.new("ScreenGui")
 
-gui.Name = "FruitFinder"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Name = "FruitNotifier"
 
-gui.Parent = playerGui
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = false
+
+Gui.DisplayOrder = 999
+
+Gui.Parent = PlayerGui
 
 --============================================================
--- JANELA
+-- CONTAINER
 --============================================================
 
-local frame = Instance.new("Frame")
+local Container = Instance.new("Frame")
 
-frame.Name = "Main"
+Container.Name = "Container"
 
-frame.Size = UDim2.fromOffset(
-	CONFIG.WindowWidth,
-	CONFIG.WindowHeight
+Container.AnchorPoint = Vector2.new(1, 0)
+
+Container.Position = UDim2.new(
+	1,
+	-CONFIG.RightOffset,
+	0,
+	CONFIG.TopOffset
 )
 
-frame.Position = UDim2.fromOffset(30, 100)
+Container.Size = UDim2.new(
+	0,
+	CONFIG.NotificationWidth,
+	0,
+	500
+)
 
-frame.BackgroundColor3 =
-	Color3.fromRGB(25, 25, 25)
+Container.BackgroundTransparency = 1
 
-frame.BorderSizePixel = 0
-frame.Active = true
-
-frame.Parent = gui
-
-local frameCorner = Instance.new("UICorner")
-
-frameCorner.CornerRadius =
-	UDim.new(0, 12)
-
-frameCorner.Parent = frame
+Container.Parent = Gui
 
 --============================================================
--- TOP BAR
+-- LIST
 --============================================================
 
-local topBar = Instance.new("Frame")
+local Layout = Instance.new("UIListLayout")
 
-topBar.Name = "TopBar"
+Layout.Padding = UDim.new(0, 8)
 
-topBar.Size =
-	UDim2.new(1, 0, 0, 50)
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 
-topBar.BackgroundColor3 =
-	Color3.fromRGB(35, 35, 35)
+Layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
-topBar.BorderSizePixel = 0
-topBar.Active = true
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
 
-topBar.Parent = frame
+Layout.Parent = Container
 
 --============================================================
--- TÍTULO
+-- NOTIFICAÇÕES ATIVAS
 --============================================================
 
-local title = Instance.new("TextLabel")
+local ActiveNotifications = {}
 
-title.Size =
-	UDim2.new(1, -125, 1, 0)
-
-title.Position =
-	UDim2.fromOffset(10, 0)
-
-title.BackgroundTransparency = 1
-
-title.Text = "🍎 FRUIT FINDER"
-
-title.TextColor3 =
-	Color3.new(1, 1, 1)
-
-title.TextSize = 17
-
-title.Font =
-	Enum.Font.GothamBold
-
-title.TextXAlignment =
-	Enum.TextXAlignment.Left
-
-title.Parent = topBar
+local NotificationIndex = 0
 
 --============================================================
--- BOTÃO ON/OFF
+-- SOM
 --============================================================
 
-local toggle = Instance.new("TextButton")
+local NotificationSound
 
-toggle.Size =
-	UDim2.fromOffset(48, 26)
+if CONFIG.EnableSound and CONFIG.SoundId ~= "" then
 
-toggle.Position =
-	UDim2.new(1, -108, 0, 12)
+	NotificationSound = Instance.new("Sound")
 
-toggle.BorderSizePixel = 0
+	NotificationSound.Name = "FruitNotificationSound"
 
-toggle.TextColor3 =
-	Color3.new(1, 1, 1)
+	NotificationSound.SoundId = CONFIG.SoundId
 
-toggle.TextSize = 11
+	NotificationSound.Volume = 0.5
 
-toggle.Font =
-	Enum.Font.GothamBold
+	NotificationSound.Parent = SoundService
 
-toggle.Parent = topBar
-
-local toggleCorner = Instance.new("UICorner")
-
-toggleCorner.CornerRadius =
-	UDim.new(0, 6)
-
-toggleCorner.Parent = toggle
+end
 
 --============================================================
--- MINIMIZAR
+-- OBTÉM NOME DA FRUTA
 --============================================================
 
-local minimize = Instance.new("TextButton")
+local function GetFruitName(Object)
 
-minimize.Size =
-	UDim2.fromOffset(32, 26)
-
-minimize.Position =
-	UDim2.new(1, -55, 0, 12)
-
-minimize.BackgroundTransparency = 1
-
-minimize.Text = "—"
-
-minimize.TextColor3 =
-	Color3.new(1, 1, 1)
-
-minimize.TextSize = 18
-
-minimize.Font =
-	Enum.Font.GothamBold
-
-minimize.Parent = topBar
-
---============================================================
--- STATUS
---============================================================
-
-local status = Instance.new("TextLabel")
-
-status.Position =
-	UDim2.fromOffset(10, 57)
-
-status.Size =
-	UDim2.new(1, -20, 0, 24)
-
-status.BackgroundTransparency = 1
-
-status.Text = "Inicializando..."
-
-status.TextColor3 =
-	Color3.fromRGB(170, 170, 170)
-
-status.TextSize = 11
-
-status.Font =
-	Enum.Font.Gotham
-
-status.TextXAlignment =
-	Enum.TextXAlignment.Left
-
-status.Parent = frame
-
---============================================================
--- LISTA
---============================================================
-
-local list = Instance.new("ScrollingFrame")
-
-list.Name = "FruitList"
-
-list.Position =
-	UDim2.fromOffset(10, 85)
-
-list.Size =
-	UDim2.new(1, -20, 1, -95)
-
-list.BackgroundTransparency = 1
-
-list.BorderSizePixel = 0
-
-list.ScrollBarThickness = 5
-
-list.CanvasSize =
-	UDim2.fromOffset(0, 0)
-
-list.Parent = frame
-
-local layout = Instance.new("UIListLayout")
-
-layout.Padding =
-	UDim.new(0, 6)
-
-layout.SortOrder =
-	Enum.SortOrder.LayoutOrder
-
-layout.Parent = list
-
-layout:GetPropertyChangedSignal(
-	"AbsoluteContentSize"
-):Connect(function()
-
-	list.CanvasSize =
-		UDim2.fromOffset(
-			0,
-			layout.AbsoluteContentSize.Y + 10
-		)
-
-end)
-
---============================================================
--- FUNÇÕES DE NOME
---============================================================
-
-local function normalizeFruitName(value)
-
-	if typeof(value) ~= "string" then
+	if not Object then
 		return nil
 	end
 
-	value = value:gsub("^%s+", "")
-	value = value:gsub("%s+$", "")
+	-- Attribute
+	local Attribute = Object:GetAttribute("FruitName")
 
-	local lower = value:lower()
-
-	-- nome exato
-	if FruitLookup[lower] then
-		return FruitLookup[lower]
+	if typeof(Attribute) == "string" and Attribute ~= "" then
+		return Attribute
 	end
 
-	-- RocketFruit
-	if lower:sub(-5) == "fruit" then
+	-- StringValue
+	local Value = Object:FindFirstChild("FruitName")
 
-		local base =
-			lower:sub(1, -6)
+	if Value and Value:IsA("StringValue") then
 
-		if FruitLookup[base] then
-			return FruitLookup[base]
+		if Value.Value ~= "" then
+			return Value.Value
 		end
 
 	end
 
-	-- "Rocket Fruit"
-	local withoutSpace =
-		lower:gsub("%s+", "")
-
-	if withoutSpace:sub(-5) == "fruit" then
-
-		local base =
-			withoutSpace:sub(1, -6)
-
-		if FruitLookup[base] then
-			return FruitLookup[base]
-		end
-
+	-- Nome do objeto
+	if ValidFruits[Object.Name] then
+		return Object.Name
 	end
 
 	return nil
 end
 
 --============================================================
--- PROCURAR NOME EM ATRIBUTOS
+-- OBTÉM POSIÇÃO
 --============================================================
 
-local function getAttributeFruit(obj)
+local function GetPosition(Object)
 
-	local attributes = {
-		"FruitName",
-		"DisplayName",
-		"ItemName",
-		"Fruit",
-	}
+	if Object:IsA("BasePart") then
+		return Object.Position
+	end
 
-	for _, attributeName in ipairs(attributes) do
+	if Object:IsA("Model") then
 
-		local value =
-			obj:GetAttribute(attributeName)
-
-		local result =
-			normalizeFruitName(value)
-
-		if result then
-			return result
+		if Object.PrimaryPart then
+			return Object.PrimaryPart.Position
 		end
 
-	end
-
-	return nil
-end
-
---============================================================
--- PROCURAR STRINGVALUE
---============================================================
-
-local function getStringValueFruit(obj)
-
-	for _, child in ipairs(
-		obj:GetDescendants()
-	) do
-
-		if child:IsA("StringValue") then
-
-			local result =
-				normalizeFruitName(
-					child.Value
-				)
-
-			if result then
-				return result
-			end
-
-		end
-
-	end
-
-	return nil
-end
-
---============================================================
--- NOME DO OBJETO
---============================================================
-
-local function getNameFruit(obj)
-
-	return normalizeFruitName(obj.Name)
-
-end
-
---============================================================
--- NOME DA FRUTA
---============================================================
-
-local function getFruitName(obj)
-
-	-- 1. nome do próprio objeto
-	local result =
-		getNameFruit(obj)
-
-	if result then
-		return result
-	end
-
-	-- 2. atributos
-	result =
-		getAttributeFruit(obj)
-
-	if result then
-		return result
-	end
-
-	-- 3. StringValues
-	result =
-		getStringValueFruit(obj)
-
-	if result then
-		return result
-	end
-
-	-- 4. procura nos filhos diretos
-	for _, child in ipairs(
-		obj:GetChildren()
-	) do
-
-		result =
-			getNameFruit(child)
-
-		if result then
-			return result
-		end
-
-	end
-
-	return nil
-end
-
---============================================================
--- VERIFICAR SE ESTÁ DENTRO DE UM CONTAINER DE FRUTAS
---============================================================
-
-local function hasFruitContainer(obj)
-
-	local current = obj.Parent
-
-	for _ = 1, 5 do
-
-		if not current then
-			break
-		end
-
-		local name =
-			current.Name:lower()
-
-		if name == "fruit"
-			or name == "fruits"
-			or name == "spawnedfruits"
-			or name == "spawned_fruits" then
-
-			return true
-		end
-
-		current =
-			current.Parent
-
-	end
-
-	return false
-end
-
---============================================================
--- DETECTOR ROBUSTO
---============================================================
-
-local function detectFruit(obj)
-
-	--========================================================
-	-- Só aceitamos objetos físicos.
-	--========================================================
-
-	if not (
-		obj:IsA("Model")
-		or obj:IsA("BasePart")
-		or obj:IsA("Tool")
-	) then
-
-		return nil
-	end
-
-	--========================================================
-	-- CASO 1
-	-- O próprio objeto possui nome de fruta.
-	--========================================================
-
-	local nameFruit =
-		getNameFruit(obj)
-
-	if nameFruit then
-
-		return nameFruit
-	end
-
-	--========================================================
-	-- CASO 2
-	-- Possui atributo explícito de fruta.
-	--========================================================
-
-	local attributeFruit =
-		getAttributeFruit(obj)
-
-	if attributeFruit then
-
-		return attributeFruit
-	end
-
-	--========================================================
-	-- CASO 3
-	-- Objeto chamado Fruit.
-	--
-	-- Aqui procuramos o nome real dentro dele.
-	--========================================================
-
-	if obj.Name:lower() == "fruit" then
-
-		local internalName =
-			getStringValueFruit(obj)
-
-		if internalName then
-			return internalName
-		end
-
-		-- Procura nome de fruta nos filhos
-		for _, child in ipairs(
-			obj:GetDescendants()
-		) do
-
-			local childFruit =
-				getNameFruit(child)
-
-			if childFruit then
-				return childFruit
-			end
-
-		end
-
-		-- Só aceitamos Fruit genérico se ele estiver
-		-- dentro de uma estrutura de frutas.
-		if hasFruitContainer(obj) then
-			return "Fruit"
-		end
-
-		return nil
-	end
-
-	--========================================================
-	-- CASO 4
-	-- Nome genérico, mas está dentro de um container
-	-- explicitamente relacionado a frutas.
-	--========================================================
-
-	if hasFruitContainer(obj) then
-
-		local containerFruit =
-			getNameFruit(obj)
-
-		if containerFruit then
-			return containerFruit
-		end
-
-	end
-
-	return nil
-end
-
---============================================================
--- PEGAR PARTE PRINCIPAL
---============================================================
-
-local function getAdornee(obj)
-
-	if obj:IsA("BasePart") then
-		return obj
-	end
-
-	if obj:IsA("Model")
-		or obj:IsA("Tool") then
-
-		if obj.PrimaryPart then
-			return obj.PrimaryPart
-		end
-
-		local handle =
-			obj:FindFirstChild(
-				"Handle",
-				true
-			)
-
-		if handle
-			and handle:IsA("BasePart") then
-
-			return handle
-		end
-
-		return obj:FindFirstChildWhichIsA(
+		local Part = Object:FindFirstChildWhichIsA(
 			"BasePart",
 			true
 		)
+
+		if Part then
+			return Part.Position
+		end
+
 	end
 
 	return nil
@@ -678,807 +244,519 @@ end
 -- DISTÂNCIA
 --============================================================
 
-local function getDistance(obj)
+local function GetDistance(Position)
 
-	local character =
-		player.Character
+	local Character = Player.Character
 
-	if not character then
+	if not Character then
 		return nil
 	end
 
-	local root =
-		character:FindFirstChild(
-			"HumanoidRootPart"
-		)
+	local Root = Character:FindFirstChild(
+		"HumanoidRootPart"
+	)
 
-	if not root then
+	if not Root then
 		return nil
 	end
 
-	local adornee =
-		getAdornee(obj)
-
-	if not adornee then
-		return nil
-	end
-
-	local distance =
-		(
-			root.Position -
-			adornee.Position
-		).Magnitude
-
-	if distance >
-		CONFIG.MaxDistance then
-
-		return nil
-	end
-
-	return distance
+	return (Root.Position - Position).Magnitude
 end
 
 --============================================================
--- DISTÂNCIA FORMATADA
+-- FORMATA DISTÂNCIA
 --============================================================
 
-local function formatDistance(distance)
+local function FormatDistance(Distance)
 
-	if not distance then
-		return "???"
+	if not Distance then
+		return "Distância desconhecida"
+	end
+
+	if Distance < 1000 then
+
+		return string.format(
+			"%d studs",
+			math.floor(Distance)
+		)
+
 	end
 
 	return string.format(
-		"%dm",
-		math.floor(distance + 0.5)
+		"%.1fK studs",
+		Distance / 1000
 	)
 end
 
 --============================================================
--- CRIAR TAG
+-- ATUALIZA DISTÂNCIA
 --============================================================
 
-local function createTag(obj, fruitName)
+local function UpdateDistance(Card, Position)
 
-	local adornee =
-		getAdornee(obj)
-
-	if not adornee then
+	if not Card or not Card.Parent then
 		return
 	end
 
-	-- remove tag antiga
-	local old =
-		adornee:FindFirstChild(
-			"FruitFinderTag"
-		)
+	local DistanceLabel = Card:FindFirstChild(
+		"Distance"
+	)
 
-	if old then
-		old:Destroy()
+	if not DistanceLabel then
+		return
 	end
 
-	local billboard =
-		Instance.new("BillboardGui")
+	local Distance = GetDistance(Position)
 
-	billboard.Name =
-		"FruitFinderTag"
+	DistanceLabel.Text =
+		"📍 " .. FormatDistance(Distance)
+end
 
-	billboard.Adornee =
-		adornee
+--============================================================
+-- REMOVER NOTIFICAÇÃO
+--============================================================
 
-	billboard.Size =
-		UDim2.fromOffset(
-			200,
-			40
-		)
+local function RemoveNotification(Card)
 
-	billboard.StudsOffsetWorldSpace =
-		Vector3.new(
-			0,
-			CONFIG.TagHeight,
-			0
-		)
+	if not Card or not Card.Parent then
+		return
+	end
 
-	billboard.AlwaysOnTop =
-		true
+	local Tween = TweenService:Create(
 
-	billboard.MaxDistance =
-		CONFIG.MaxDistance
+		Card,
 
-	billboard.Enabled =
-		Enabled
-		and CONFIG.ShowTags
+		TweenInfo.new(
+			0.25,
+			Enum.EasingStyle.Quint,
+			Enum.EasingDirection.In
+		),
 
-	billboard.Parent =
-		adornee
+		{
+			Size = UDim2.new(
+				0,
+				0,
+				0,
+				CONFIG.NotificationHeight
+			),
 
-	local text =
-		Instance.new("TextLabel")
+			BackgroundTransparency = 1
+		}
+	)
 
-	text.Name =
-		"Text"
+	Tween:Play()
 
-	text.Size =
-		UDim2.fromScale(1, 1)
+	Tween.Completed:Wait()
 
-	text.BackgroundTransparency =
-		1
+	if Card then
+		Card:Destroy()
+	end
 
-	text.TextColor3 =
-		Color3.new(1, 1, 1)
+	for Index, Object in ipairs(
+		ActiveNotifications
+	) do
 
-	text.TextStrokeColor3 =
-		Color3.new(0, 0, 0)
+		if Object == Card then
 
-	text.TextStrokeTransparency =
-		0
+			table.remove(
+				ActiveNotifications,
+				Index
+			)
 
-	text.TextSize =
-		CONFIG.TagTextSize
+			break
+		end
 
-	text.Font =
+	end
+end
+
+--============================================================
+-- CRIAR NOTIFICAÇÃO
+--============================================================
+
+local function CreateNotification(
+	FruitName,
+	Position
+)
+
+	-- Limite
+	while #ActiveNotifications >=
+		CONFIG.MaxNotifications do
+
+		local Oldest =
+			table.remove(
+				ActiveNotifications,
+				1
+			)
+
+		if Oldest and Oldest.Parent then
+			Oldest:Destroy()
+		end
+
+	end
+
+	NotificationIndex += 1
+
+	--========================================================
+	-- CARD
+	--========================================================
+
+	local Card = Instance.new("Frame")
+
+	Card.Name = "FruitNotification"
+
+	Card.LayoutOrder = NotificationIndex
+
+	Card.Size = UDim2.new(
+		0,
+		0,
+		0,
+		CONFIG.NotificationHeight
+	)
+
+	Card.BackgroundColor3 =
+		Color3.fromRGB(18, 18, 23)
+
+	Card.BackgroundTransparency = 0.05
+
+	Card.BorderSizePixel = 0
+
+	Card.Parent = Container
+
+	--========================================================
+	-- CORNER
+	--========================================================
+
+	local Corner = Instance.new("UICorner")
+
+	Corner.CornerRadius =
+		UDim.new(0, 12)
+
+	Corner.Parent = Card
+
+	--========================================================
+	-- STROKE
+	--========================================================
+
+	local Stroke = Instance.new("UIStroke")
+
+	Stroke.Thickness = 1
+
+	Stroke.Transparency = 0.3
+
+	Stroke.Parent = Card
+
+	--========================================================
+	-- ÍCONE
+	--========================================================
+
+	local Icon = Instance.new("TextLabel")
+
+	Icon.Name = "Icon"
+
+	Icon.Position =
+		UDim2.new(0, 12, 0, 0)
+
+	Icon.Size =
+		UDim2.new(0, 50, 1, 0)
+
+	Icon.BackgroundTransparency = 1
+
+	Icon.Text = "🍎"
+
+	Icon.TextSize = 28
+
+	Icon.Font =
 		Enum.Font.GothamBold
 
-	text.Text =
-		fruitName
-
-	text.Parent =
-		billboard
-
-	Tags[obj] =
-		billboard
-end
-
---============================================================
--- ATUALIZAR TAG
---============================================================
-
-local function updateTag(obj)
-
-	local tag =
-		Tags[obj]
-
-	if not tag then
-		return
-	end
-
-	if not obj.Parent then
-
-		Tags[obj] = nil
-		return
-	end
-
-	local text =
-		tag:FindFirstChild("Text")
-
-	if not text then
-		return
-	end
-
-	local fruitName =
-		Detected[obj]
-
-	if not fruitName then
-		return
-	end
-
-	local distance =
-		getDistance(obj)
-
-	if CONFIG.ShowDistance
-		and distance then
-
-		text.Text =
-			fruitName
-			..
-			" • "
-			..
-			formatDistance(distance)
-
-	else
-
-		text.Text =
-			fruitName
-
-	end
-
-	tag.Enabled =
-		Enabled
-		and CONFIG.ShowTags
-end
-
---============================================================
--- LIMPAR LISTA
---============================================================
-
-local function clearList()
-
-	for _, child in ipairs(
-		list:GetChildren()
-	) do
-
-		if child:IsA("TextLabel") then
-			child:Destroy()
-		end
-
-	end
-end
-
---============================================================
--- ATUALIZAR LISTA
---============================================================
-
-local function updateList()
-
-	clearList()
-
-	local entries = {}
-
-	for obj, fruitName in pairs(
-		Detected
-	) do
-
-		if obj
-			and obj.Parent then
-
-			local distance =
-				getDistance(obj)
-
-			table.insert(
-				entries,
-				{
-					Object = obj,
-					Name = fruitName,
-					Distance = distance
-				}
-			)
-
-		end
-	end
+	Icon.Parent = Card
 
 	--========================================================
-	-- MAIS PRÓXIMAS PRIMEIRO
+	-- NOME
 	--========================================================
 
-	table.sort(
-		entries,
-		function(a, b)
+	local NameLabel = Instance.new("TextLabel")
 
-			if not a.Distance then
-				return false
-			end
+	NameLabel.Name = "FruitName"
 
-			if not b.Distance then
-				return true
-			end
+	NameLabel.Position =
+		UDim2.new(0, 68, 0, 10)
 
-			return a.Distance <
-				b.Distance
-		end
+	NameLabel.Size =
+		UDim2.new(1, -80, 0, 25)
+
+	NameLabel.BackgroundTransparency = 1
+
+	NameLabel.Text = FruitName
+
+	NameLabel.TextColor3 =
+		Color3.fromRGB(255, 255, 255)
+
+	NameLabel.TextSize = 17
+
+	NameLabel.Font =
+		Enum.Font.GothamBold
+
+	NameLabel.TextXAlignment =
+		Enum.TextXAlignment.Left
+
+	NameLabel.TextTruncate =
+		Enum.TextTruncate.AtEnd
+
+	NameLabel.Parent = Card
+
+	--========================================================
+	-- DISTÂNCIA
+	--========================================================
+
+	local DistanceLabel = Instance.new("TextLabel")
+
+	DistanceLabel.Name = "Distance"
+
+	DistanceLabel.Position =
+		UDim2.new(0, 68, 0, 39)
+
+	DistanceLabel.Size =
+		UDim2.new(1, -80, 0, 22)
+
+	DistanceLabel.BackgroundTransparency = 1
+
+	DistanceLabel.TextColor3 =
+		Color3.fromRGB(180, 180, 190)
+
+	DistanceLabel.TextSize = 13
+
+	DistanceLabel.Font =
+		Enum.Font.Gotham
+
+	DistanceLabel.TextXAlignment =
+		Enum.TextXAlignment.Left
+
+	DistanceLabel.Parent = Card
+
+	--========================================================
+	-- DISTÂNCIA INICIAL
+	--========================================================
+
+	UpdateDistance(
+		Card,
+		Position
 	)
 
 	--========================================================
-	-- NENHUMA
+	-- GUARDA
 	--========================================================
 
-	if #entries == 0 then
+	table.insert(
+		ActiveNotifications,
+		Card
+	)
 
-		status.Text =
-			"Nenhuma fruta detectada."
+	--========================================================
+	-- SOM
+	--========================================================
 
-		local empty =
-			Instance.new("TextLabel")
+	if NotificationSound then
 
-		empty.Size =
-			UDim2.new(
-				1,
-				-5,
-				0,
-				45
-			)
+		NotificationSound:Play()
 
-		empty.BackgroundTransparency =
-			1
-
-		empty.Text =
-			"Nenhuma fruta detectada."
-
-		empty.TextColor3 =
-			Color3.fromRGB(
-				170,
-				170,
-				170
-			)
-
-		empty.TextSize =
-			14
-
-		empty.Font =
-			Enum.Font.Gotham
-
-		empty.Parent =
-			list
-
-		return
 	end
 
 	--========================================================
-	-- STATUS
+	-- ANIMAÇÃO ENTRADA
 	--========================================================
 
-	status.Text =
-		string.format(
-			"%d fruta(s) detectada(s)",
-			#entries
-		)
+	local OpenTween = TweenService:Create(
 
-	--========================================================
-	-- ITENS
-	--========================================================
+		Card,
 
-	for index, entry in ipairs(entries) do
+		TweenInfo.new(
+			0.35,
+			Enum.EasingStyle.Quint,
+			Enum.EasingDirection.Out
+		),
 
-		local item =
-			Instance.new("TextLabel")
-
-		item.Size =
-			UDim2.new(
+		{
+			Size = UDim2.new(
 				1,
-				-5,
 				0,
-				44
+				0,
+				CONFIG.NotificationHeight
+			)
+		}
+	)
+
+	OpenTween:Play()
+
+	--========================================================
+	-- ATUALIZA DISTÂNCIA
+	--========================================================
+
+	task.spawn(function()
+
+		local Start = os.clock()
+
+		while Card.Parent and
+			os.clock() - Start <
+			CONFIG.NotificationDuration do
+
+			UpdateDistance(
+				Card,
+				Position
 			)
 
-		item.BackgroundColor3 =
-			Color3.fromRGB(
-				45,
-				45,
-				45
-			)
-
-		item.BorderSizePixel =
-			0
-
-		if entry.Distance then
-
-			item.Text =
-				"🍎  "
-				..
-				entry.Name
-				..
-				"   •   "
-				..
-				formatDistance(
-					entry.Distance
-				)
-
-		else
-
-			item.Text =
-				"🍎  "
-				..
-				entry.Name
+			task.wait(0.5)
 
 		end
 
-		item.TextColor3 =
-			Color3.new(1, 1, 1)
+	end)
 
-		item.TextSize =
-			14
+	--========================================================
+	-- REMOÇÃO
+	--========================================================
 
-		item.Font =
-			Enum.Font.GothamBold
+	task.delay(
+		CONFIG.NotificationDuration,
+		function()
 
-		item.TextXAlignment =
-			Enum.TextXAlignment.Left
+			RemoveNotification(Card)
 
-		item.LayoutOrder =
-			index
+		end
+	)
 
-		item.Parent =
-			list
-
-		local corner =
-			Instance.new("UICorner")
-
-		corner.CornerRadius =
-			UDim.new(0, 8)
-
-		corner.Parent =
-			item
-	end
 end
 
 --============================================================
--- SCAN COMPLETO
+-- CONTROLE DE FRUTAS JÁ NOTIFICADAS
 --============================================================
 
-local function scan()
+local AlreadyNotified = {}
 
-	local found = {}
+--============================================================
+-- PROCESSAR OBJETO
+--============================================================
 
-	--========================================================
-	-- VARRE O WORKSPACE
-	--========================================================
+local function ProcessFruit(Object)
 
-	for _, obj in ipairs(
-		workspace:GetDescendants()
-	) do
-
-		local fruitName =
-			detectFruit(obj)
-
-		if fruitName then
-
-			found[obj] =
-				fruitName
-
-		end
+	if not Object then
+		return
 	end
 
-	--========================================================
-	-- REMOVE O QUE NÃO EXISTE MAIS
-	--========================================================
+	if AlreadyNotified[Object] then
+		return
+	end
 
-	for obj in pairs(Detected) do
+	local FruitName =
+		GetFruitName(Object)
 
-		if not found[obj] then
+	if not FruitName then
+		return
+	end
 
-			Detected[obj] =
-				nil
+	if not ValidFruits[FruitName] then
+		return
+	end
 
-			local tag =
-				Tags[obj]
+	local Position =
+		GetPosition(Object)
 
-			if tag then
+	if not Position then
+		return
+	end
 
-				tag:Destroy()
+	AlreadyNotified[Object] = true
 
-				Tags[obj] =
-					nil
+	CreateNotification(
+		FruitName,
+		Position
+	)
+
+	-- Limpa quando desaparecer
+	Object.AncestryChanged:Connect(
+		function(_, Parent)
+
+			if not Parent then
+				AlreadyNotified[Object] = nil
 			end
+
 		end
+	)
+
+end
+
+--============================================================
+-- MONITORAR PASTA
+--============================================================
+
+local function MonitorFolder(Folder)
+
+	-- Frutas existentes
+	if CONFIG.CheckExistingFruits then
+
+		for _, Object in ipairs(
+			Folder:GetChildren()
+		) do
+
+			task.defer(
+				ProcessFruit,
+				Object
+			)
+
+		end
+
 	end
 
-	--========================================================
-	-- ADICIONA NOVAS
-	--========================================================
+	-- Novas frutas
+	Folder.ChildAdded:Connect(
+		function(Object)
 
-	for obj, fruitName in pairs(found) do
+			task.defer(
+				ProcessFruit,
+				Object
+			)
 
-		if not Detected[obj] then
+		end
+	)
 
-			Detected[obj] =
-				fruitName
+end
 
-			if CONFIG.ShowTags then
+--============================================================
+-- ENCONTRAR PASTA
+--============================================================
 
-				createTag(
-					obj,
-					fruitName
+local FruitsFolder =
+	workspace:FindFirstChild(
+		CONFIG.FolderName
+	)
+
+if FruitsFolder then
+
+	MonitorFolder(
+		FruitsFolder
+	)
+
+else
+
+	workspace.ChildAdded:Connect(
+		function(Object)
+
+			if Object.Name ==
+				CONFIG.FolderName then
+
+				MonitorFolder(
+					Object
 				)
 
 			end
-		end
-	end
 
-	updateList()
+		end
+	)
+
 end
 
 --============================================================
--- BOTÃO ON/OFF
+-- DEBUG
 --============================================================
-
-local function updateToggle()
-
-	if Enabled then
-
-		toggle.Text =
-			"ON"
-
-		toggle.BackgroundColor3 =
-			Color3.fromRGB(
-				40,
-				170,
-				80
-			)
-
-	else
-
-		toggle.Text =
-			"OFF"
-
-		toggle.BackgroundColor3 =
-			Color3.fromRGB(
-				170,
-				45,
-				45
-			)
-	end
-end
-
-toggle.MouseButton1Click:Connect(function()
-
-	Enabled =
-		not Enabled
-
-	updateToggle()
-
-	for obj, tag in pairs(Tags) do
-
-		if tag then
-
-			tag.Enabled =
-				Enabled
-				and CONFIG.ShowTags
-		end
-	end
-
-	if Enabled then
-
-		status.Text =
-			"Notificador ativado."
-
-	else
-
-		status.Text =
-			"Notificador desativado."
-	end
-end)
-
---============================================================
--- MINIMIZAR
---============================================================
-
-local normalSize =
-	UDim2.fromOffset(
-		CONFIG.WindowWidth,
-		CONFIG.WindowHeight
-	)
-
-local minimizedSize =
-	UDim2.fromOffset(
-		60,
-		50
-	)
-
-minimize.MouseButton1Click:Connect(function()
-
-	Minimized =
-		not Minimized
-
-	if Minimized then
-
-		frame.Size =
-			minimizedSize
-
-		status.Visible =
-			false
-
-		list.Visible =
-			false
-
-		toggle.Visible =
-			false
-
-		title.Text =
-			"🍎"
-
-		minimize.Text =
-			"+"
-
-	else
-
-		frame.Size =
-			normalSize
-
-		status.Visible =
-			true
-
-		list.Visible =
-			true
-
-		toggle.Visible =
-			true
-
-		title.Text =
-			"🍎 FRUIT FINDER"
-
-		minimize.Text =
-			"—"
-	end
-end)
-
---============================================================
--- ARRASTAR
---============================================================
-
-local dragging = false
-local dragStart
-local startPosition
-
-topBar.InputBegan:Connect(function(input)
-
-	if input.UserInputType ==
-		Enum.UserInputType.MouseButton1
-		or input.UserInputType ==
-		Enum.UserInputType.Touch then
-
-		dragging =
-			true
-
-		dragStart =
-			input.Position
-
-		startPosition =
-			frame.Position
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-
-	if not dragging then
-		return
-	end
-
-	if input.UserInputType ==
-		Enum.UserInputType.MouseMovement
-		or input.UserInputType ==
-		Enum.UserInputType.Touch then
-
-		local delta =
-			input.Position -
-			dragStart
-
-		frame.Position =
-			UDim2.new(
-				startPosition.X.Scale,
-				startPosition.X.Offset +
-					delta.X,
-
-				startPosition.Y.Scale,
-				startPosition.Y.Offset +
-					delta.Y
-			)
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-
-	if input.UserInputType ==
-		Enum.UserInputType.MouseButton1
-		or input.UserInputType ==
-		Enum.UserInputType.Touch then
-
-		dragging =
-			false
-	end
-end)
-
---============================================================
--- FRUTA NOVA
---============================================================
-
-workspace.DescendantAdded:Connect(function(obj)
-
-	task.wait(0.1)
-
-	if not Enabled then
-		return
-	end
-
-	local fruitName =
-		detectFruit(obj)
-
-	if fruitName then
-
-		Detected[obj] =
-			fruitName
-
-		if CONFIG.ShowTags then
-
-			createTag(
-				obj,
-				fruitName
-			)
-		end
-
-		task.defer(
-			updateList
-		)
-	end
-end)
-
---============================================================
--- FRUTA REMOVIDA
---============================================================
-
-workspace.DescendantRemoving:Connect(function(obj)
-
-	if Detected[obj] then
-
-		Detected[obj] =
-			nil
-
-	end
-
-	if Tags[obj] then
-
-		Tags[obj]:Destroy()
-
-		Tags[obj] =
-			nil
-	end
-
-	task.defer(
-		updateList
-	)
-end)
-
---============================================================
--- ATUALIZA DISTÂNCIAS
---============================================================
-
-task.spawn(function()
-
-	while gui.Parent do
-
-		if Enabled then
-
-			for obj in pairs(
-				Detected
-			) do
-
-				updateTag(obj)
-
-			end
-		end
-
-		task.wait(
-			CONFIG.DistanceUpdate
-		)
-	end
-end)
-
---============================================================
--- SCAN A CADA 2 SEGUNDOS
---============================================================
-
-task.spawn(function()
-
-	while gui.Parent do
-
-		if Enabled then
-
-			scan()
-
-		end
-
-		task.wait(
-			CONFIG.ScanInterval
-		)
-	end
-end)
-
---============================================================
--- INICIALIZAÇÃO
---============================================================
-
-updateToggle()
-
-status.Text =
-	"Procurando frutas..."
-
--- O menu aparece ANTES do primeiro scan.
--- Portanto, se o detector tiver problema,
--- a GUI ainda deverá aparecer.
-
-task.defer(function()
-	scan()
-end)
 
 print(
-	"[FruitFinder] V2 iniciado."
+	"[FruitNotifier] Rework carregado."
 )
-```
