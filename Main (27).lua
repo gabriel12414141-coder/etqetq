@@ -1,30 +1,18 @@
-```lua
 --============================================================
--- FRUIT RECOGNITION SYSTEM
--- Roblox Studio - LocalScript
---
--- Procura automaticamente:
--- Fruit
--- Fruits
--- SpawnedFruit
--- SpawnedFruits
--- MyFruitFolder
--- Qualquer Folder contendo "fruit"
+-- FRUIT RECOGNITION - AUTO FOLDER
+-- Roblox Studio / LocalScript
 --============================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
 --============================================================
--- CONFIGURAÇÕES
+-- FRUTAS RECONHECIDAS
 --============================================================
 
-local SCAN_INTERVAL = 0.5
-
--- Frutas reconhecidas
 local FruitNames = {
 	["Rocket"] = true,
 	["Spin"] = true,
@@ -65,112 +53,102 @@ local FruitNames = {
 	["Dragon"] = true,
 	["Yeti"] = true,
 	["Gas"] = true,
-	["Leopard"] = true,
+	["Leopard"] = true
 }
 
 --============================================================
 -- LIMPAR GUI ANTIGO
 --============================================================
 
-local oldGui = PlayerGui:FindFirstChild("FruitRecognition")
+local old = playerGui:FindFirstChild("FruitRecognition")
 
-if oldGui then
-	oldGui:Destroy()
+if old then
+	old:Destroy()
 end
 
 --============================================================
--- GUI PRINCIPAL
+-- GUI
 --============================================================
 
-local Gui = Instance.new("ScreenGui")
-Gui.Name = "FruitRecognition"
-Gui.ResetOnSpawn = false
-Gui.IgnoreGuiInset = true
-Gui.Parent = PlayerGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "FruitRecognition"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = playerGui
 
---============================================================
--- JANELA
---============================================================
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 330, 0, 430)
+main.Position = UDim2.new(0, 20, 0.5, -215)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.BorderSizePixel = 0
+main.Parent = gui
 
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.new(0, 320, 0, 420)
-Main.Position = UDim2.new(0, 20, 0.5, -210)
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Main.BorderSizePixel = 0
-Main.Parent = Gui
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
-MainCorner.Parent = Main
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = main
 
 --============================================================
 -- TÍTULO
 --============================================================
 
-local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Size = UDim2.new(1, -20, 0, 45)
-Title.Position = UDim2.new(0, 10, 0, 5)
-Title.BackgroundTransparency = 1
-Title.Text = "🍎 Fruit Recognition"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 22
-Title.Font = Enum.Font.GothamBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = Main
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -20, 0, 45)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "🍎 Fruit Recognition"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 21
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = main
 
 --============================================================
 -- STATUS
 --============================================================
 
-local Status = Instance.new("TextLabel")
-Status.Name = "Status"
-Status.Size = UDim2.new(1, -20, 0, 30)
-Status.Position = UDim2.new(0, 10, 0, 48)
-Status.BackgroundTransparency = 1
-Status.Text = "Inicializando..."
-Status.TextColor3 = Color3.fromRGB(180, 180, 180)
-Status.TextSize = 14
-Status.Font = Enum.Font.Gotham
-Status.TextXAlignment = Enum.TextXAlignment.Left
-Status.Parent = Main
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -20, 0, 45)
+status.Position = UDim2.new(0, 10, 0, 48)
+status.BackgroundTransparency = 1
+status.Text = "Procurando..."
+status.TextColor3 = Color3.fromRGB(200, 200, 200)
+status.TextSize = 13
+status.Font = Enum.Font.Gotham
+status.TextWrapped = true
+status.TextXAlignment = Enum.TextXAlignment.Left
+status.Parent = main
 
 --============================================================
 -- LISTA
 --============================================================
 
-local List = Instance.new("ScrollingFrame")
-List.Name = "FruitList"
-List.Size = UDim2.new(1, -20, 1, -90)
-List.Position = UDim2.new(0, 10, 0, 85)
-List.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-List.BorderSizePixel = 0
-List.ScrollBarThickness = 5
-List.CanvasSize = UDim2.new(0, 0, 0, 0)
-List.Parent = Main
+local list = Instance.new("ScrollingFrame")
+list.Size = UDim2.new(1, -20, 1, -105)
+list.Position = UDim2.new(0, 10, 0, 100)
+list.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+list.BorderSizePixel = 0
+list.ScrollBarThickness = 5
+list.CanvasSize = UDim2.new(0, 0, 0, 0)
+list.Parent = main
 
-local ListCorner = Instance.new("UICorner")
-ListCorner.CornerRadius = UDim.new(0, 8)
-ListCorner.Parent = List
+local listCorner = Instance.new("UICorner")
+listCorner.CornerRadius = UDim.new(0, 8)
+listCorner.Parent = list
 
-local Layout = Instance.new("UIListLayout")
-Layout.Padding = UDim.new(0, 6)
-Layout.SortOrder = Enum.SortOrder.Name
-Layout.Parent = List
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 6)
+layout.SortOrder = Enum.SortOrder.Name
+layout.Parent = list
 
 --============================================================
 -- NORMALIZAR NOME
 --============================================================
 
-local function NormalizeName(name)
+local function normalizeName(name)
 
 	name = tostring(name)
 
-	-- Remove "Fruit" do final
-	name = name:gsub("%s+[Ff]ruit$", "")
-
-	-- Remove espaços extras
+	name = name:gsub("%s*[Ff]ruit%s*$", "")
 	name = name:gsub("^%s+", "")
 	name = name:gsub("%s+$", "")
 
@@ -178,57 +156,47 @@ local function NormalizeName(name)
 end
 
 --============================================================
--- VERIFICAR SE É UMA FRUTA
+-- RECONHECER FRUTA
 --============================================================
 
-local function IsFruit(object)
+local function isFruit(object)
 
 	if not object then
 		return false
 	end
 
-	local normalized = NormalizeName(object.Name)
+	local name = normalizeName(object.Name)
 
-	return FruitNames[normalized] == true
+	return FruitNames[name] == true
 end
 
 --============================================================
--- LOCALIZAR PASTAS DE FRUTAS
+-- ENCONTRAR PASTAS
 --============================================================
 
-local function IsFruitFolder(object)
-
-	if not object:IsA("Folder") then
-		return false
-	end
-
-	local name = object.Name:lower()
-
-	-- Nomes exatos
-	if name == "fruit" or name == "fruits" then
-		return true
-	end
-
-	-- Qualquer nome contendo "fruit"
-	if string.find(name, "fruit", 1, true) then
-		return true
-	end
-
-	return false
-end
-
---============================================================
--- PEGAR TODAS AS PASTAS
---============================================================
-
-local function GetFruitFolders()
+local function getFruitFolders()
 
 	local folders = {}
 
 	for _, object in ipairs(workspace:GetDescendants()) do
 
-		if IsFruitFolder(object) then
-			table.insert(folders, object)
+		if object:IsA("Folder") then
+
+			local lowerName = object.Name:lower()
+
+			-- Fruit
+			-- Fruits
+			-- SpawnedFruit
+			-- SpawnedFruits
+			-- MyFruitFolder
+			-- etc.
+
+			if string.find(lowerName, "fruit", 1, true) then
+
+				table.insert(folders, object)
+
+			end
+
 		end
 
 	end
@@ -237,10 +205,10 @@ local function GetFruitFolders()
 end
 
 --============================================================
--- PEGAR POSIÇÃO
+-- POSIÇÃO
 --============================================================
 
-local function GetPosition(object)
+local function getPosition(object)
 
 	if object:IsA("BasePart") then
 		return object.Position
@@ -250,93 +218,86 @@ local function GetPosition(object)
 		return object:GetPivot().Position
 	end
 
-	if object:IsA("Attachment") then
-		return object.WorldPosition
-	end
-
 	return nil
 end
+
+--============================================================
+-- DADOS
+--============================================================
+
+local detected = {}
 
 --============================================================
 -- CRIAR ITEM
 --============================================================
 
-local function CreateFruitEntry(name)
+local function createEntry(name)
 
-	local Entry = Instance.new("Frame")
-	Entry.Name = name
-	Entry.Size = UDim2.new(1, -10, 0, 60)
-	Entry.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-	Entry.BorderSizePixel = 0
-	Entry.Parent = List
+	local entry = Instance.new("Frame")
+	entry.Size = UDim2.new(1, -10, 0, 60)
+	entry.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	entry.BorderSizePixel = 0
+	entry.Parent = list
 
-	local Corner = Instance.new("UICorner")
-	Corner.CornerRadius = UDim.new(0, 8)
-	Corner.Parent = Entry
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 8)
+	c.Parent = entry
 
-	-- Nome
-	local NameLabel = Instance.new("TextLabel")
-	NameLabel.Size = UDim2.new(1, -20, 0, 27)
-	NameLabel.Position = UDim2.new(0, 10, 0, 4)
-	NameLabel.BackgroundTransparency = 1
-	NameLabel.Text = "🍏 " .. name .. " Fruit"
-	NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	NameLabel.TextSize = 16
-	NameLabel.Font = Enum.Font.GothamBold
-	NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-	NameLabel.Parent = Entry
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -20, 0, 28)
+	nameLabel.Position = UDim2.new(0, 10, 0, 3)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = "🍏 " .. name .. " Fruit"
+	nameLabel.TextColor3 = Color3.new(1, 1, 1)
+	nameLabel.TextSize = 16
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Parent = entry
 
-	-- Distância
-	local DistanceLabel = Instance.new("TextLabel")
-	DistanceLabel.Size = UDim2.new(1, -20, 0, 20)
-	DistanceLabel.Position = UDim2.new(0, 10, 0, 33)
-	DistanceLabel.BackgroundTransparency = 1
-	DistanceLabel.Text = "📍 Calculando..."
-	DistanceLabel.TextColor3 = Color3.fromRGB(120, 220, 120)
-	DistanceLabel.TextSize = 12
-	DistanceLabel.Font = Enum.Font.Gotham
-	DistanceLabel.TextXAlignment = Enum.TextXAlignment.Left
-	DistanceLabel.Parent = Entry
+	local distance = Instance.new("TextLabel")
+	distance.Size = UDim2.new(1, -20, 0, 20)
+	distance.Position = UDim2.new(0, 10, 0, 32)
+	distance.BackgroundTransparency = 1
+	distance.Text = "📍 Calculando..."
+	distance.TextColor3 = Color3.fromRGB(100, 255, 120)
+	distance.TextSize = 12
+	distance.Font = Enum.Font.Gotham
+	distance.TextXAlignment = Enum.TextXAlignment.Left
+	distance.Parent = entry
 
-	return Entry, DistanceLabel
+	return entry, distance
 end
 
 --============================================================
--- TABELA DE FRUTAS DETECTADAS
+-- SCAN
 --============================================================
 
-local Detected = {}
+local function scan()
 
---============================================================
--- SCAN PRINCIPAL
---============================================================
+	local current = {}
 
-local function ScanFruits()
+	local folders = getFruitFolders()
 
-	local Current = {}
-
-	local folders = GetFruitFolders()
+	local folderCount = #folders
 
 	for _, folder in ipairs(folders) do
 
 		for _, object in ipairs(folder:GetDescendants()) do
 
-			if IsFruit(object) then
+			if isFruit(object) then
 
-				local fruitName = NormalizeName(object.Name)
+				current[object] = true
 
-				Current[object] = fruitName
+				if not detected[object] then
 
-				-- Nova fruta
-				if not Detected[object] then
+					local name = normalizeName(object.Name)
 
-					local Entry, DistanceLabel =
-						CreateFruitEntry(fruitName)
+					local entry, distance =
+						createEntry(name)
 
-					Detected[object] = {
-						Name = fruitName,
-						Entry = Entry,
-						DistanceLabel = DistanceLabel
+					detected[object] = {
+						entry = entry,
+						distance = distance
 					}
 
 				end
@@ -351,15 +312,15 @@ local function ScanFruits()
 	-- REMOVER FRUTAS QUE SUMIRAM
 	--========================================================
 
-	for object, data in pairs(Detected) do
+	for object, data in pairs(detected) do
 
-		if not Current[object] then
+		if not current[object] then
 
-			if data.Entry then
-				data.Entry:Destroy()
+			if data.entry then
+				data.entry:Destroy()
 			end
 
-			Detected[object] = nil
+			detected[object] = nil
 
 		end
 
@@ -369,72 +330,76 @@ local function ScanFruits()
 	-- CONTAGEM
 	--========================================================
 
-	local count = 0
+	local fruitCount = 0
 
-	for _ in pairs(Current) do
-		count += 1
+	for _ in pairs(current) do
+		fruitCount += 1
 	end
 
-	Status.Text = count .. " fruta(s) detectada(s)"
+	if folderCount == 0 then
 
-	if count > 0 then
-		Status.TextColor3 = Color3.fromRGB(100, 255, 120)
+		status.Text =
+			"Nenhuma pasta contendo 'Fruit' encontrada.\n" ..
+			"Pastas verificadas: Workspace"
+
+		status.TextColor3 =
+			Color3.fromRGB(255, 180, 80)
+
 	else
-		Status.TextColor3 = Color3.fromRGB(180, 180, 180)
+
+		status.Text =
+			folderCount .. " pasta(s) encontrada(s) • " ..
+			fruitCount .. " fruta(s)"
+
+		status.TextColor3 =
+			Color3.fromRGB(100, 255, 120)
+
 	end
 
-	-- Atualizar tamanho da lista
 	task.defer(function()
 
-		List.CanvasSize = UDim2.new(
+		list.CanvasSize = UDim2.new(
 			0,
 			0,
 			0,
-			Layout.AbsoluteContentSize.Y + 10
+			layout.AbsoluteContentSize.Y + 10
 		)
 
 	end)
 end
 
 --============================================================
--- ATUALIZAR DISTÂNCIAS
+-- DISTÂNCIA
 --============================================================
 
-local function UpdateDistances()
+local function updateDistances()
 
-	local Character = Player.Character
+	local character = player.Character
 
-	if not Character then
+	if not character then
 		return
 	end
 
-	local Root =
-		Character:FindFirstChild("HumanoidRootPart")
+	local root =
+		character:FindFirstChild("HumanoidRootPart")
 
-	if not Root then
+	if not root then
 		return
 	end
 
-	for object, data in pairs(Detected) do
+	for object, data in pairs(detected) do
 
-		if object
-			and object.Parent
-			and data.DistanceLabel then
+		if object and object.Parent then
 
-			local position = GetPosition(object)
+			local position = getPosition(object)
 
 			if position then
 
 				local distance =
-					(Root.Position - position).Magnitude
+					(root.Position - position).Magnitude
 
-				data.DistanceLabel.Text =
+				data.distance.Text =
 					"📍 " .. math.floor(distance) .. " studs"
-
-			else
-
-				data.DistanceLabel.Text =
-					"📍 Posição desconhecida"
 
 			end
 
@@ -444,71 +409,57 @@ local function UpdateDistances()
 end
 
 --============================================================
--- MONITORAR NOVOS OBJETOS
+-- NOVOS OBJETOS
 --============================================================
 
-workspace.DescendantAdded:Connect(function(object)
+workspace.DescendantAdded:Connect(function()
 
-	-- Pequeno atraso para garantir que
-	-- a fruta tenha terminado de carregar.
-	task.delay(0.1, function()
+	task.wait(0.1)
 
-		if Gui.Parent then
-			ScanFruits()
-		end
-
-	end)
+	if gui.Parent then
+		scan()
+	end
 
 end)
 
 workspace.DescendantRemoving:Connect(function()
 
-	task.delay(0.05, function()
+	task.wait(0.05)
 
-		if Gui.Parent then
-			ScanFruits()
-		end
-
-	end)
+	if gui.Parent then
+		scan()
+	end
 
 end)
 
 --============================================================
--- LOOP DE SCAN
+-- LOOP
 --============================================================
 
 task.spawn(function()
 
-	while Gui.Parent do
+	while gui.Parent do
 
-		ScanFruits()
+		scan()
 
-		task.wait(SCAN_INTERVAL)
+		task.wait(0.5)
 
 	end
 
 end)
-
---============================================================
--- LOOP DE DISTÂNCIA
---============================================================
 
 RunService.RenderStepped:Connect(function()
 
-	if Gui.Parent then
-		UpdateDistances()
+	if gui.Parent then
+		updateDistances()
 	end
 
 end)
 
 --============================================================
--- PRIMEIRO SCAN
+-- INICIALIZAÇÃO
 --============================================================
 
 task.wait(1)
 
-ScanFruits()
-
-Status.Text = "Sistema pronto"
-Status.TextColor3 = Color3.fromRGB(100, 255, 120)
-```
+scan()
