@@ -1,22 +1,19 @@
 --========================================================
--- FRUIT FINDER PRO
--- Sistema para o seu próprio jogo Roblox
+-- FRUIT FINDER - VERSÃO REFEITA
+-- Para o seu próprio jogo Roblox
 --========================================================
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
-local LOCAL_PLAYER = Players.LocalPlayer
-local PLAYER_GUI = LOCAL_PLAYER:WaitForChild("PlayerGui")
-
-local UPDATE_INTERVAL = 0.5
-local BILLBOARD_DISTANCE = 1500
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
 --========================================================
--- BANCO DE FRUTAS
+-- FRUTAS
 --========================================================
 
-local FRUITS = {
+local Fruits = {
 	["Rocket Fruit"] = {"RocketFruit", "Rocket"},
 	["Spin Fruit"] = {"SpinFruit", "Spin"},
 	["Blade Fruit"] = {"BladeFruit", "Blade"},
@@ -55,8 +52,7 @@ local FRUITS = {
 	["T-Rex Fruit"] = {
 		"TRexFruit",
 		"TrexFruit",
-		"TRex",
-		"TRexModel"
+		"TRex"
 	},
 
 	["Dough Fruit"] = {"DoughFruit", "Dough"},
@@ -75,54 +71,69 @@ local FRUITS = {
 -- NORMALIZAÇÃO
 --========================================================
 
-local function normalize(value)
-	value = tostring(value or ""):lower()
+local function normalize(text)
 
-	return value:gsub(
-		"[%s_%-%[%]%(%){}%.]",
+	text = tostring(text or ""):lower()
+
+	text = text:gsub(
+		"[^%w]",
 		""
 	)
+
+	return text
 end
 
 --========================================================
--- ALIASES PRÉ-PROCESSADOS
+-- BANCO NORMALIZADO
 --========================================================
 
-local ALIAS_TO_FRUIT = {}
+local FruitLookup = {}
 
-for fruitName, aliases in pairs(FRUITS) do
-	for _, alias in ipairs(aliases) do
-		ALIAS_TO_FRUIT[normalize(alias)] = fruitName
+for fruitName, names in pairs(Fruits) do
+
+	FruitLookup[
+		normalize(fruitName)
+	] = fruitName
+
+	for _, name in ipairs(names) do
+
+		FruitLookup[
+			normalize(name)
+		] = fruitName
 	end
 end
 
 --========================================================
--- IDENTIFICAÇÃO POR ATRIBUTO
+-- IDENTIFICAR PELO TEXTO
 --========================================================
 
-local ATTRIBUTE_NAMES = {
-	fruitname = true,
-	fruit = true,
-	fruittype = true,
-	fruitnameid = true,
-}
+local function identifyText(text)
 
-local function identifyFromAttributes(object)
+	local normalized =
+		normalize(text)
 
-	for key, value in pairs(object:GetAttributes()) do
-		local normalizedKey = normalize(key)
+	if normalized == "" then
+		return nil
+	end
 
-		if ATTRIBUTE_NAMES[normalizedKey] then
+	-- Correspondência exata
+	local exact =
+		FruitLookup[normalized]
 
-			local normalizedValue =
-				normalize(value)
+	if exact then
+		return exact
+	end
 
-			local result =
-				ALIAS_TO_FRUIT[normalizedValue]
+	-- Correspondência parcial
+	for key, fruitName in pairs(FruitLookup) do
 
-			if result then
-				return result
-			end
+		if normalized:find(
+			key,
+			1,
+			true
+		) then
+
+			return fruitName
 		end
 	end
 
@@ -130,59 +141,95 @@ local function identifyFromAttributes(object)
 end
 
 --========================================================
--- IDENTIFICAÇÃO PELO NOME
+-- IDENTIFICAR ATRIBUTO
 --========================================================
 
-local function identifyFromName(object)
+local function checkAttributes(object)
 
-	local direct =
-		ALIAS_TO_FRUIT[
-			normalize(object.Name)
-		]
+	for attributeName, value in pairs(
+		object:GetAttributes()
+	) do
 
-	if direct then
-		return direct
+		local key =
+			normalize(attributeName)
+
+		local valueResult =
+			identifyText(value)
+
+		if valueResult then
+
+			if key == "fruit"
+				or key == "fruitname"
+				or key == "fruittype"
+				or key == "fruitid"
+				or key == "fruitnameid"
+				or key == "name" then
+
+				return valueResult
+			end
+
+		end
 	end
 
 	return nil
 end
 
 --========================================================
--- IDENTIFICAÇÃO COMPLETA
+-- IDENTIFICAR MODELO
 --========================================================
 
-local function identifyFruit(object)
+local function identifyFruit(model)
 
-	-- 1. Atributo no próprio modelo
+	-- Primeiro: atributos do próprio modelo
 	local result =
-		identifyFromAttributes(object)
+		checkAttributes(model)
 
 	if result then
 		return result
 	end
 
-	-- 2. Nome do próprio modelo
+	-- Segundo: nome do próprio modelo
 	result =
-		identifyFromName(object)
+		identifyText(model.Name)
 
 	if result then
 		return result
 	end
 
-	-- 3. Procurar filhos
+	-- Terceiro: filhos diretos
 	for _, child in ipairs(
-		object:GetChildren()
+		model:GetChildren()
 	) do
 
 		result =
-			identifyFromAttributes(child)
+			checkAttributes(child)
 
 		if result then
 			return result
 		end
 
 		result =
-			identifyFromName(child)
+			identifyText(child.Name)
+
+		if result then
+			return result
+		end
+	end
+
+	-- Quarto: descendentes
+	for _, descendant in ipairs(
+		model:GetDescendants()
+	) do
+
+		result =
+			checkAttributes(descendant)
+
+		if result then
+			return result
+		end
+
+		result =
+			identifyText(descendant.Name)
 
 		if result then
 			return result
@@ -193,23 +240,29 @@ local function identifyFruit(object)
 end
 
 --========================================================
--- PEGAR PARTE PRINCIPAL
+-- FRUTAS ENCONTRADAS
 --========================================================
 
-local function getMainPart(object)
+local detected = {}
 
-	if object:IsA("BasePart") then
-		return object
+--========================================================
+-- PARTE PRINCIPAL
+--========================================================
+
+local function getPart(model)
+
+	if model:IsA("BasePart") then
+		return model
 	end
 
-	if object:IsA("Model") then
+	if model:IsA("Model") then
 
-		if object.PrimaryPart then
-			return object.PrimaryPart
+		if model.PrimaryPart then
+			return model.PrimaryPart
 		end
 
 		local handle =
-			object:FindFirstChild(
+			model:FindFirstChild(
 				"Handle",
 				true
 			)
@@ -219,41 +272,35 @@ local function getMainPart(object)
 		end
 	end
 
-	return object:FindFirstChildWhichIsA(
+	return model:FindFirstChildWhichIsA(
 		"BasePart",
 		true
 	)
 end
 
 --========================================================
--- FRUTAS DETECTADAS
+-- TEXTO SOBRE A FRUTA
 --========================================================
 
-local detectedFruits = {}
-
---========================================================
--- CRIAR DISPLAY
---========================================================
-
-local function createFruitDisplay(
-	object,
+local function addDisplay(
+	model,
 	fruitName
 )
 
 	local part =
-		getMainPart(object)
+		getPart(model)
 
 	if not part then
 		return
 	end
 
-	local existing =
-		object:FindFirstChild(
-			"FruitNameDisplay"
+	local old =
+		model:FindFirstChild(
+			"FruitFinderDisplay"
 		)
 
-	if existing then
-		existing:Destroy()
+	if old then
+		old:Destroy()
 	end
 
 	local billboard =
@@ -262,15 +309,15 @@ local function createFruitDisplay(
 		)
 
 	billboard.Name =
-		"FruitNameDisplay"
+		"FruitFinderDisplay"
 
 	billboard.Adornee =
 		part
 
 	billboard.Size =
 		UDim2.fromOffset(
-			190,
-			42
+			200,
+			45
 		)
 
 	billboard.StudsOffset =
@@ -284,58 +331,52 @@ local function createFruitDisplay(
 		true
 
 	billboard.MaxDistance =
-		BILLBOARD_DISTANCE
-
-	billboard.LightInfluence =
-		0
+		1500
 
 	billboard.Parent =
-		object
+		model
 
-	local label =
+	local text =
 		Instance.new(
 			"TextLabel"
 		)
 
-	label.Name =
-		"FruitName"
-
-	label.Size =
+	text.Size =
 		UDim2.fromScale(
 			1,
 			1
 		)
 
-	label.BackgroundTransparency =
+	text.BackgroundTransparency =
 		1
 
-	label.Text =
+	text.Text =
 		"🍎 " .. fruitName
 
-	label.TextColor3 =
+	text.TextColor3 =
 		Color3.new(
 			1,
 			1,
 			1
 		)
 
-	label.TextStrokeColor3 =
+	text.TextStrokeColor3 =
 		Color3.new(
 			0,
 			0,
 			0
 		)
 
-	label.TextStrokeTransparency =
-		0.15
+	text.TextStrokeTransparency =
+		0
 
-	label.TextScaled =
+	text.TextScaled =
 		true
 
-	label.Font =
+	text.Font =
 		Enum.Font.GothamBold
 
-	label.Parent =
+	text.Parent =
 		billboard
 end
 
@@ -343,28 +384,28 @@ end
 -- REGISTRAR
 --========================================================
 
-local function registerFruit(object)
+local function register(model)
 
-	if detectedFruits[object] then
+	if not model:IsA("Model") then
 		return
 	end
 
-	if not object:IsA("Model") then
+	if detected[model] then
 		return
 	end
 
 	local fruitName =
-		identifyFruit(object)
+		identifyFruit(model)
 
 	if not fruitName then
 		return
 	end
 
-	detectedFruits[object] =
+	detected[model] =
 		fruitName
 
-	createFruitDisplay(
-		object,
+	addDisplay(
+		model,
 		fruitName
 	)
 end
@@ -373,14 +414,14 @@ end
 -- REMOVER
 --========================================================
 
-local function unregisterFruit(object)
+local function remove(model)
 
-	detectedFruits[object] =
+	detected[model] =
 		nil
 end
 
 --========================================================
--- BUSCA INICIAL
+-- PROCURAR WORKSPACE
 --========================================================
 
 task.spawn(function()
@@ -389,8 +430,9 @@ task.spawn(function()
 		workspace:GetDescendants()
 	) do
 
-		registerFruit(object)
+		register(object)
 
+		-- Evita travar durante a primeira busca
 		task.wait()
 	end
 end)
@@ -405,7 +447,7 @@ workspace.DescendantAdded:Connect(
 		task.defer(function()
 
 			if object.Parent then
-				registerFruit(object)
+				register(object)
 			end
 		end)
 	end
@@ -418,7 +460,7 @@ workspace.DescendantAdded:Connect(
 workspace.DescendantRemoving:Connect(
 	function(object)
 
-		unregisterFruit(object)
+		remove(object)
 	end
 )
 
@@ -426,13 +468,13 @@ workspace.DescendantRemoving:Connect(
 -- GUI
 --========================================================
 
-local oldGui =
-	PLAYER_GUI:FindFirstChild(
+local old =
+	playerGui:FindFirstChild(
 		"FruitFinder"
 	)
 
-if oldGui then
-	oldGui:Destroy()
+if old then
+	old:Destroy()
 end
 
 local gui =
@@ -447,19 +489,16 @@ gui.ResetOnSpawn =
 	false
 
 gui.Parent =
-	PLAYER_GUI
+	playerGui
 
 --========================================================
--- PAINEL
+-- MAIN
 --========================================================
 
 local main =
 	Instance.new(
 		"Frame"
 	)
-
-main.Name =
-	"Main"
 
 main.Size =
 	UDim2.fromOffset(
@@ -489,18 +528,18 @@ main.Active =
 main.Parent =
 	gui
 
-local mainCorner =
+local corner =
 	Instance.new(
 		"UICorner"
 	)
 
-mainCorner.CornerRadius =
+corner.CornerRadius =
 	UDim.new(
 		0,
 		10
 	)
 
-mainCorner.Parent =
+corner.Parent =
 	main
 
 --========================================================
@@ -511,9 +550,6 @@ local header =
 	Instance.new(
 		"Frame"
 	)
-
-header.Name =
-	"Header"
 
 header.Size =
 	UDim2.new(
@@ -538,10 +574,6 @@ header.Active =
 
 header.Parent =
 	main
-
---========================================================
--- TÍTULO
---========================================================
 
 local title =
 	Instance.new(
@@ -633,7 +665,7 @@ counter.Parent =
 	header
 
 --========================================================
--- BOTÃO MINIMIZAR
+-- MINIMIZAR
 --========================================================
 
 local minimize =
@@ -686,9 +718,6 @@ local list =
 		"ScrollingFrame"
 	)
 
-list.Name =
-	"FruitList"
-
 list.Position =
 	UDim2.fromOffset(
 		10,
@@ -726,9 +755,6 @@ layout.Padding =
 		6
 	)
 
-layout.SortOrder =
-	Enum.SortOrder.Name
-
 layout.Parent =
 	list
 
@@ -740,22 +766,6 @@ local dragging = false
 local dragStart
 local startPosition
 local dragInput
-
-local function updateDrag(input)
-
-	local delta =
-		input.Position -
-		dragStart
-
-	main.Position =
-		UDim2.new(
-			startPosition.X.Scale,
-			startPosition.X.Offset + delta.X,
-
-			startPosition.Y.Scale,
-			startPosition.Y.Offset + delta.Y
-		)
-end
 
 header.InputBegan:Connect(
 	function(input)
@@ -797,11 +807,20 @@ UserInputService.InputChanged:Connect(
 			return
 		end
 
-		if input == dragInput
-			or input.UserInputType ==
-			Enum.UserInputType.MouseMovement then
+		if input == dragInput then
 
-			updateDrag(input)
+			local delta =
+				input.Position -
+				dragStart
+
+			main.Position =
+				UDim2.new(
+					startPosition.X.Scale,
+					startPosition.X.Offset + delta.X,
+
+					startPosition.Y.Scale,
+					startPosition.Y.Offset + delta.Y
+				)
 		end
 	end
 )
@@ -815,7 +834,6 @@ UserInputService.InputEnded:Connect(
 			Enum.UserInputType.Touch then
 
 			dragging = false
-			dragInput = nil
 		end
 	end
 )
@@ -880,13 +898,13 @@ local function updateList()
 
 	local count = 0
 
-	for object, fruitName in pairs(
-		detectedFruits
+	for model, fruitName in pairs(
+		detected
 	) do
 
-		if object
-			and object.Parent
-			and object:IsDescendantOf(workspace) then
+		if model
+			and model.Parent
+			and model:IsDescendantOf(workspace) then
 
 			count += 1
 
@@ -894,9 +912,6 @@ local function updateList()
 				Instance.new(
 					"Frame"
 				)
-
-			item.Name =
-				fruitName
 
 			item.Size =
 				UDim2.new(
@@ -919,18 +934,18 @@ local function updateList()
 			item.Parent =
 				list
 
-			local corner =
+			local itemCorner =
 				Instance.new(
 					"UICorner"
 				)
 
-			corner.CornerRadius =
+			itemCorner.CornerRadius =
 				UDim.new(
 					0,
 					8
 				)
 
-			corner.Parent =
+			itemCorner.Parent =
 				item
 
 			local label =
@@ -956,8 +971,7 @@ local function updateList()
 				1
 
 			label.Text =
-				"🍎 " ..
-				fruitName
+				"🍎 " .. fruitName
 
 			label.TextColor3 =
 				Color3.new(
@@ -980,7 +994,7 @@ local function updateList()
 
 		else
 
-			detectedFruits[object] =
+			detected[model] =
 				nil
 		end
 	end
@@ -989,14 +1003,16 @@ local function updateList()
 		tostring(count)
 
 	list.CanvasSize =
-		UDim2.fromOffset(
+		UDim2.new(
+			0,
+			0,
 			0,
 			layout.AbsoluteContentSize.Y + 10
 		)
 end
 
 --========================================================
--- LOOP DO PAINEL
+-- LOOP DA INTERFACE
 --========================================================
 
 task.spawn(function()
@@ -1007,8 +1023,6 @@ task.spawn(function()
 			updateList()
 		end
 
-		task.wait(
-			UPDATE_INTERVAL
-		)
+		task.wait(0.5)
 	end
 end)
