@@ -1,5 +1,5 @@
 --============================================================
--- FRUIT NOTIFIER - TESTE CONTROLADO
+-- FRUIT NOTIFIER - TESTE CONTROLADO / MOBILE
 -- LocalScript
 -- StarterPlayer > StarterPlayerScripts
 --============================================================
@@ -20,9 +20,9 @@ local playerGui = player:WaitForChild("PlayerGui")
 local RADIUS = 9000
 local CHECK_INTERVAL = 0.5
 local Enabled = true
+local Minimized = false
 
--- Som de teste.
--- Substitua pelo ID de um áudio permitido no seu próprio jogo.
+-- Coloque aqui um SoundId permitido pelo seu jogo.
 local SOUND_ID = "rbxassetid://0"
 
 local FruitNames = {
@@ -70,172 +70,226 @@ local FruitNames = {
 }
 
 --============================================================
--- HISTÓRICO
+-- DADOS
 --============================================================
 
-local FruitHistory = {}
 local KnownObjects = {}
+local History = {}
 
 --============================================================
--- REMOVE GUI ANTIGO
+-- GUI ANTIGO
 --============================================================
 
-local old = playerGui:FindFirstChild("FruitNotifierGUI")
+local old = playerGui:FindFirstChild("FruitNotifierMobile")
 
 if old then
 	old:Destroy()
 end
 
 --============================================================
--- GUI
+-- SCREEN GUI
 --============================================================
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "FruitNotifierGUI"
+gui.Name = "FruitNotifierMobile"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
+gui.IgnoreGuiInset = false
+gui.DisplayOrder = 100
 gui.Parent = playerGui
 
+--============================================================
+-- MAIN
+--============================================================
+
 local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(430, 520)
-main.Position = UDim2.new(0.5, -215, 0.5, -260)
+main.Name = "Main"
+
+-- Responsivo
+main.Size = UDim2.new(0.82, 0, 0.58, 0)
+main.Position = UDim2.new(0.09, 0, 0.21, 0)
+
 main.BackgroundColor3 = Color3.fromRGB(18,18,24)
 main.BorderSizePixel = 0
 main.Parent = gui
 
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0,14)
+mainCorner.CornerRadius = UDim.new(0,12)
 mainCorner.Parent = main
 
 local stroke = Instance.new("UIStroke")
 stroke.Color = Color3.fromRGB(65,65,80)
+stroke.Thickness = 1
 stroke.Parent = main
+
+-- Limita o tamanho em telas muito grandes
+local sizeConstraint = Instance.new("UISizeConstraint")
+sizeConstraint.MinSize = Vector2.new(260,190)
+sizeConstraint.MaxSize = Vector2.new(420,430)
+sizeConstraint.Parent = main
 
 --============================================================
 -- HEADER
 --============================================================
 
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1,0,0,75)
+header.Size = UDim2.new(1,0,0,52)
 header.BackgroundColor3 = Color3.fromRGB(25,25,34)
 header.BorderSizePixel = 0
 header.Parent = main
 
 local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0,14)
+headerCorner.CornerRadius = UDim.new(0,12)
 headerCorner.Parent = header
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,-30,0,35)
-title.Position = UDim2.fromOffset(15,8)
+title.Size = UDim2.new(1,-100,1,0)
+title.Position = UDim2.fromOffset(12,0)
 title.BackgroundTransparency = 1
-title.Text = "🍎  FRUIT NOTIFIER"
+title.Text = "🍎 Fruit Notifier"
 title.TextColor3 = Color3.new(1,1,1)
-title.TextSize = 22
+title.TextSize = 17
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = header
 
-local subtitle = Instance.new("TextLabel")
-subtitle.Size = UDim2.new(1,-30,0,20)
-subtitle.Position = UDim2.fromOffset(15,45)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "TESTE • Raio: 9.000 studs"
-subtitle.TextColor3 = Color3.fromRGB(150,150,165)
-subtitle.TextSize = 12
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextXAlignment = Enum.TextXAlignment.Left
-subtitle.Parent = header
+--============================================================
+-- BOTÃO MINIMIZAR
+--============================================================
+
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.fromOffset(38,34)
+minimize.Position = UDim2.new(1,-82,0,9)
+minimize.BackgroundColor3 = Color3.fromRGB(45,45,58)
+minimize.BorderSizePixel = 0
+minimize.Text = "−"
+minimize.TextColor3 = Color3.new(1,1,1)
+minimize.TextSize = 22
+minimize.Font = Enum.Font.GothamBold
+minimize.Parent = header
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0,8)
+minCorner.Parent = minimize
+
+--============================================================
+-- BOTÃO FECHAR GUI
+--============================================================
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.fromOffset(34,34)
+close.Position = UDim2.new(1,-42,0,9)
+close.BackgroundColor3 = Color3.fromRGB(120,45,50)
+close.BorderSizePixel = 0
+close.Text = "×"
+close.TextColor3 = Color3.new(1,1,1)
+close.TextSize = 20
+close.Font = Enum.Font.GothamBold
+close.Parent = header
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0,8)
+closeCorner.Parent = close
+
+--============================================================
+-- CONTEÚDO
+--============================================================
+
+local content = Instance.new("Frame")
+content.Name = "Content"
+content.Size = UDim2.new(1,0,1,-52)
+content.Position = UDim2.fromOffset(0,52)
+content.BackgroundTransparency = 1
+content.Parent = main
 
 --============================================================
 -- STATUS
 --============================================================
 
-local statusFrame = Instance.new("Frame")
-statusFrame.Size = UDim2.new(1,-30,0,55)
-statusFrame.Position = UDim2.fromOffset(15,90)
-statusFrame.BackgroundColor3 = Color3.fromRGB(28,28,37)
-statusFrame.BorderSizePixel = 0
-statusFrame.Parent = main
+local status = Instance.new("Frame")
+status.Size = UDim2.new(1,-24,0,40)
+status.Position = UDim2.fromOffset(12,10)
+status.BackgroundColor3 = Color3.fromRGB(28,28,37)
+status.BorderSizePixel = 0
+status.Parent = content
 
 local statusCorner = Instance.new("UICorner")
-statusCorner.CornerRadius = UDim.new(0,10)
-statusCorner.Parent = statusFrame
+statusCorner.CornerRadius = UDim.new(0,8)
+statusCorner.Parent = status
 
-local statusDot = Instance.new("TextLabel")
-statusDot.Size = UDim2.fromOffset(30,55)
-statusDot.Position = UDim2.fromOffset(10,0)
-statusDot.BackgroundTransparency = 1
-statusDot.Text = "●"
-statusDot.TextColor3 = Color3.fromRGB(80,255,120)
-statusDot.TextSize = 20
-statusDot.Font = Enum.Font.GothamBold
-statusDot.Parent = statusFrame
+local dot = Instance.new("TextLabel")
+dot.Size = UDim2.fromOffset(25,40)
+dot.Position = UDim2.fromOffset(7,0)
+dot.BackgroundTransparency = 1
+dot.Text = "●"
+dot.TextColor3 = Color3.fromRGB(80,255,120)
+dot.TextSize = 16
+dot.Font = Enum.Font.GothamBold
+dot.Parent = status
 
 local statusText = Instance.new("TextLabel")
-statusText.Size = UDim2.new(1,-55,1,0)
-statusText.Position = UDim2.fromOffset(45,0)
+statusText.Size = UDim2.new(1,-40,1,0)
+statusText.Position = UDim2.fromOffset(35,0)
 statusText.BackgroundTransparency = 1
-statusText.Text = "NOTIFICADOR ATIVO"
+statusText.Text = "ATIVO • 9000 studs"
 statusText.TextColor3 = Color3.fromRGB(230,230,235)
-statusText.TextSize = 14
+statusText.TextSize = 12
 statusText.Font = Enum.Font.GothamBold
 statusText.TextXAlignment = Enum.TextXAlignment.Left
-statusText.Parent = statusFrame
+statusText.Parent = status
 
 --============================================================
--- BOTÃO
+-- TOGGLE
 --============================================================
 
 local toggle = Instance.new("TextButton")
-toggle.Size = UDim2.new(1,-30,0,42)
-toggle.Position = UDim2.fromOffset(15,160)
-toggle.BackgroundColor3 = Color3.fromRGB(45,45,58)
+toggle.Size = UDim2.new(1,-24,0,36)
+toggle.Position = UDim2.fromOffset(12,58)
+toggle.BackgroundColor3 = Color3.fromRGB(48,48,62)
 toggle.BorderSizePixel = 0
 toggle.Text = "DESATIVAR"
 toggle.TextColor3 = Color3.new(1,1,1)
-toggle.TextSize = 14
+toggle.TextSize = 12
 toggle.Font = Enum.Font.GothamBold
-toggle.Parent = main
+toggle.Parent = content
 
 local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0,9)
+toggleCorner.CornerRadius = UDim.new(0,8)
 toggleCorner.Parent = toggle
 
 --============================================================
--- TÍTULO DO HISTÓRICO
+-- TÍTULO HISTÓRICO
 --============================================================
 
 local historyTitle = Instance.new("TextLabel")
-historyTitle.Size = UDim2.new(1,-30,0,25)
-historyTitle.Position = UDim2.fromOffset(15,215)
+historyTitle.Size = UDim2.new(1,-24,0,22)
+historyTitle.Position = UDim2.fromOffset(12,103)
 historyTitle.BackgroundTransparency = 1
-historyTitle.Text = "FRUTAS OBSERVADAS"
+historyTitle.Text = "HISTÓRICO"
 historyTitle.TextColor3 = Color3.fromRGB(170,170,185)
-historyTitle.TextSize = 12
+historyTitle.TextSize = 11
 historyTitle.Font = Enum.Font.GothamBold
 historyTitle.TextXAlignment = Enum.TextXAlignment.Left
-historyTitle.Parent = main
+historyTitle.Parent = content
 
 --============================================================
 -- HISTÓRICO
 --============================================================
 
 local history = Instance.new("ScrollingFrame")
-history.Size = UDim2.new(1,-30,0,240)
-history.Position = UDim2.fromOffset(15,245)
+history.Size = UDim2.new(1,-24,1,-135)
+history.Position = UDim2.fromOffset(12,125)
 history.BackgroundColor3 = Color3.fromRGB(12,12,17)
 history.BorderSizePixel = 0
-history.ScrollBarThickness = 4
+history.ScrollBarThickness = 3
 history.CanvasSize = UDim2.new()
-history.Parent = main
+history.Parent = content
 
 local historyCorner = Instance.new("UICorner")
-historyCorner.CornerRadius = UDim.new(0,9)
+historyCorner.CornerRadius = UDim.new(0,8)
 historyCorner.Parent = history
 
 local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0,3)
+layout.Padding = UDim.new(0,2)
 layout.Parent = history
 
 --============================================================
@@ -248,7 +302,7 @@ sound.SoundId = SOUND_ID
 sound.Volume = 1
 sound.Parent = SoundService
 
-local function playDetectionSound()
+local function playSound()
 
 	if SOUND_ID == "rbxassetid://0" then
 		return
@@ -260,16 +314,16 @@ local function playDetectionSound()
 end
 
 --============================================================
--- HISTÓRICO GUI
+-- HISTÓRICO
 --============================================================
 
-local function refreshCanvas()
+local function updateCanvas()
 
 	history.CanvasSize = UDim2.new(
 		0,
 		0,
 		0,
-		layout.AbsoluteContentSize.Y + 10
+		layout.AbsoluteContentSize.Y + 8
 	)
 
 	history.CanvasPosition = Vector2.new(
@@ -282,18 +336,17 @@ local function addHistory(text)
 
 	local item = Instance.new("TextLabel")
 
-	item.Size = UDim2.new(1,-10,0,32)
+	item.Size = UDim2.new(1,-8,0,28)
 	item.BackgroundTransparency = 1
-
 	item.Text = text
 	item.TextColor3 = Color3.fromRGB(220,220,225)
-	item.TextSize = 12
+	item.TextSize = 11
 	item.Font = Enum.Font.Gotham
 	item.TextXAlignment = Enum.TextXAlignment.Left
 
 	item.Parent = history
 
-	task.defer(refreshCanvas)
+	task.defer(updateCanvas)
 end
 
 --============================================================
@@ -314,7 +367,7 @@ local function getPosition(object)
 end
 
 --============================================================
--- NOTIFICAÇÃO
+-- NOTIFICAR
 --============================================================
 
 local function notifyFruit(name,distance)
@@ -322,12 +375,12 @@ local function notifyFruit(name,distance)
 	local time = os.date("%H:%M:%S")
 
 	addHistory(
-		"🍎  "..name..
-		"   |   "..math.floor(distance)..
-		" studs   |   "..time
+		"🍎 "..name..
+		"  •  "..math.floor(distance)..
+		" studs  •  "..time
 	)
 
-	playDetectionSound()
+	playSound()
 
 	pcall(function()
 
@@ -341,27 +394,6 @@ local function notifyFruit(name,distance)
 end
 
 --============================================================
--- REGISTRAR FRUTA
---============================================================
-
-local function registerFruit(object,distance)
-
-	if KnownObjects[object] then
-		return
-	end
-
-	KnownObjects[object] = {
-		Name = object.Name,
-		FirstSeen = os.time(),
-		LastDistance = distance
-	}
-
-	table.insert(FruitHistory,KnownObjects[object])
-
-	notifyFruit(object.Name,distance)
-end
-
---============================================================
 -- TOGGLE
 --============================================================
 
@@ -371,27 +403,123 @@ toggle.MouseButton1Click:Connect(function()
 
 	if Enabled then
 
-		statusDot.TextColor3 = Color3.fromRGB(80,255,120)
-		statusText.Text = "NOTIFICADOR ATIVO"
+		dot.TextColor3 = Color3.fromRGB(80,255,120)
+		statusText.Text = "ATIVO • 9000 studs"
 		toggle.Text = "DESATIVAR"
-
-		addHistory("✓ Detector ativado")
 
 	else
 
-		statusDot.TextColor3 = Color3.fromRGB(255,80,80)
-		statusText.Text = "NOTIFICADOR DESATIVADO"
+		dot.TextColor3 = Color3.fromRGB(255,80,80)
+		statusText.Text = "DESATIVADO"
 		toggle.Text = "ATIVAR"
 
-		addHistory("✕ Detector desativado")
 	end
+end)
+
+--============================================================
+-- MINIMIZAR / RESTAURAR
+--============================================================
+
+local normalSize = main.Size
+local normalPosition = main.Position
+
+minimize.Activated:Connect(function()
+
+	Minimized = not Minimized
+
+	if Minimized then
+
+		normalSize = main.Size
+		normalPosition = main.Position
+
+		content.Visible = false
+
+		main.Size = UDim2.new(
+			0.82,0,
+			0,52
+		)
+
+		main.Position = UDim2.new(
+			normalPosition.X.Scale,
+			normalPosition.X.Offset,
+			normalPosition.Y.Scale,
+			normalPosition.Y.Offset
+		)
+
+		minimize.Text = "+"
+
+	else
+
+		content.Visible = true
+		main.Size = normalSize
+		main.Position = normalPosition
+		minimize.Text = "−"
+
+	end
+end)
+
+--============================================================
+-- FECHAR
+--============================================================
+
+close.Activated:Connect(function()
+	gui:Destroy()
+end)
+
+--============================================================
+-- ARRASTAR POR MOUSE OU TOQUE
+--============================================================
+
+local dragging = false
+local dragStart
+local startPosition
+
+header.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPosition = main.Position
+	end
+end)
+
+header.InputEnded:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+	if not dragging then
+		return
+	end
+
+	if input.UserInputType ~= Enum.UserInputType.MouseMovement
+		and input.UserInputType ~= Enum.UserInputType.Touch then
+		return
+	end
+
+	local delta = input.Position - dragStart
+
+	main.Position = UDim2.new(
+		startPosition.X.Scale,
+		startPosition.X.Offset + delta.X,
+		startPosition.Y.Scale,
+		startPosition.Y.Offset + delta.Y
+	)
 end)
 
 --============================================================
 -- DETECTOR
 --============================================================
 
-local timer = 0
+local elapsed = 0
 
 RunService.Heartbeat:Connect(function(delta)
 
@@ -399,22 +527,20 @@ RunService.Heartbeat:Connect(function(delta)
 		return
 	end
 
-	timer += delta
+	elapsed += delta
 
-	if timer < CHECK_INTERVAL then
+	if elapsed < CHECK_INTERVAL then
 		return
 	end
 
-	timer = 0
+	elapsed = 0
 
 	local character = player.Character
-
 	if not character then
 		return
 	end
 
 	local root = character:FindFirstChild("HumanoidRootPart")
-
 	if not root then
 		return
 	end
@@ -428,14 +554,21 @@ RunService.Heartbeat:Connect(function(delta)
 			if position then
 
 				local distance =
-					(root.Position-position).Magnitude
+					(root.Position - position).Magnitude
 
 				if distance <= RADIUS then
 
 					if not KnownObjects[object] then
-						registerFruit(object,distance)
-					else
-						KnownObjects[object].LastDistance = distance
+
+						KnownObjects[object] = {
+							Name = object.Name,
+							FirstSeen = os.time()
+						}
+
+						notifyFruit(
+							object.Name,
+							distance
+						)
 					end
 				end
 			end
@@ -444,7 +577,7 @@ RunService.Heartbeat:Connect(function(delta)
 end)
 
 --============================================================
--- LIMPEZA DE OBJETOS REMOVIDOS
+-- FRUTAS REMOVIDAS
 --============================================================
 
 task.spawn(function()
@@ -456,8 +589,7 @@ task.spawn(function()
 			if object.Parent == nil then
 
 				addHistory(
-					"🗑️  "..data.Name..
-					" desapareceu do mapa"
+					"🗑️ "..data.Name.." saiu do mapa"
 				)
 
 				KnownObjects[object] = nil
@@ -467,56 +599,10 @@ task.spawn(function()
 end)
 
 --============================================================
--- ARRASTAR GUI
---============================================================
-
-local dragging = false
-local dragStart
-local startPosition
-
-header.InputBegan:Connect(function(input)
-
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-
-		dragging = true
-		dragStart = input.Position
-		startPosition = main.Position
-
-		input.Changed:Connect(function()
-
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-
-		end)
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-
-	if not dragging then
-		return
-	end
-
-	if input.UserInputType ~= Enum.UserInputType.MouseMovement then
-		return
-	end
-
-	local delta = input.Position-dragStart
-
-	main.Position = UDim2.new(
-		startPosition.X.Scale,
-		startPosition.X.Offset+delta.X,
-		startPosition.Y.Scale,
-		startPosition.Y.Offset+delta.Y
-	)
-end)
-
---============================================================
 -- INICIALIZAÇÃO
 --============================================================
 
-addHistory("✓ Fruit Notifier iniciado")
+addHistory("✓ Detector iniciado")
 addHistory("✓ Raio: 9.000 studs")
-addHistory("✓ 42 frutas na whitelist")
-addHistory("✓ Histórico iniciado")
+addHistory("✓ 42 frutas configuradas")
+addHistory("✓ Toque/mouse: arrastar")
