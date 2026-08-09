@@ -5,8 +5,6 @@ local RunService = game:GetService("RunService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
-local FruitsFolder = workspace:WaitForChild("Fruits")
-
 --==================================================
 -- CONFIGURAÇÃO
 --==================================================
@@ -20,7 +18,7 @@ local Settings = {
 }
 
 --==================================================
--- REMOVER VERSÃO ANTERIOR
+-- REMOVER GUI ANTIGA
 --==================================================
 
 local OldGui = PlayerGui:FindFirstChild("FruitFinder")
@@ -30,12 +28,13 @@ if OldGui then
 end
 
 --==================================================
--- GUI PRINCIPAL
+-- GUI
 --==================================================
 
 local Gui = Instance.new("ScreenGui")
 Gui.Name = "FruitFinder"
 Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 Gui.Parent = PlayerGui
 
@@ -56,21 +55,26 @@ WindowCorner.CornerRadius = UDim.new(0, 8)
 WindowCorner.Parent = Window
 
 --==================================================
--- BARRA DE TÍTULO
+-- BARRA SUPERIOR
 --==================================================
 
 local TopBar = Instance.new("Frame")
 TopBar.Name = "TopBar"
-TopBar.Size = UDim2.new(1, 0, 0, 38)
-TopBar.BackgroundColor3 = Color3.fromRGB(32, 32, 40)
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 44)
 TopBar.BorderSizePixel = 0
+TopBar.Active = true
 TopBar.Parent = Window
+
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 8)
+TopCorner.Parent = TopBar
 
 local Title = Instance.new("TextLabel")
 Title.Name = "Title"
 Title.BackgroundTransparency = 1
 Title.Position = UDim2.fromOffset(12, 0)
-Title.Size = UDim2.new(1, -50, 1, 0)
+Title.Size = UDim2.new(1, -55, 1, 0)
 Title.Font = Enum.Font.GothamBold
 Title.Text = "Fruit Finder"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -83,14 +87,14 @@ Title.Parent = TopBar
 --==================================================
 
 local MinimizeButton = Instance.new("TextButton")
-MinimizeButton.Name = "Minimize"
-MinimizeButton.Size = UDim2.fromOffset(34, 34)
-MinimizeButton.Position = UDim2.new(1, -36, 0, 2)
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Size = UDim2.fromOffset(36, 36)
+MinimizeButton.Position = UDim2.new(1, -38, 0, 2)
 MinimizeButton.BackgroundTransparency = 1
 MinimizeButton.Font = Enum.Font.GothamBold
-MinimizeButton.Text = "—"
-MinimizeButton.TextColor3 = Color3.fromRGB(220, 220, 220)
-MinimizeButton.TextSize = 18
+MinimizeButton.Text = "−"
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.TextSize = 20
 MinimizeButton.Parent = TopBar
 
 --==================================================
@@ -99,8 +103,8 @@ MinimizeButton.Parent = TopBar
 
 local Content = Instance.new("Frame")
 Content.Name = "Content"
-Content.Position = UDim2.fromOffset(10, 48)
-Content.Size = UDim2.new(1, -20, 1, -58)
+Content.Position = UDim2.fromOffset(10, 50)
+Content.Size = UDim2.new(1, -20, 1, -60)
 Content.BackgroundTransparency = 1
 Content.Parent = Window
 
@@ -109,9 +113,9 @@ Content.Parent = Window
 --==================================================
 
 local SearchBox = Instance.new("TextBox")
-SearchBox.Name = "Search"
+SearchBox.Name = "SearchBox"
 SearchBox.Size = UDim2.new(1, 0, 0, 34)
-SearchBox.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
+SearchBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 SearchBox.BorderSizePixel = 0
 SearchBox.ClearTextOnFocus = false
 SearchBox.Font = Enum.Font.Gotham
@@ -127,19 +131,19 @@ SearchCorner.CornerRadius = UDim.new(0, 6)
 SearchCorner.Parent = SearchBox
 
 --==================================================
--- BOTÃO ENABLE
+-- BOTÃO ON/OFF
 --==================================================
 
 local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = "Toggle"
+ToggleButton.Name = "ToggleButton"
 ToggleButton.Position = UDim2.fromOffset(0, 43)
 ToggleButton.Size = UDim2.new(1, 0, 0, 34)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(45, 120, 70)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(45, 125, 70)
 ToggleButton.BorderSizePixel = 0
 ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Text = "Fruit Finder: ON"
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.TextSize = 12
-ToggleButton.Text = "Fruit Finder: ON"
 ToggleButton.Parent = Content
 
 local ToggleCorner = Instance.new("UICorner")
@@ -147,21 +151,42 @@ ToggleCorner.CornerRadius = UDim.new(0, 6)
 ToggleCorner.Parent = ToggleButton
 
 --==================================================
+-- STATUS
+--==================================================
+
+local Status = Instance.new("TextLabel")
+Status.Name = "Status"
+Status.Position = UDim2.fromOffset(0, 82)
+Status.Size = UDim2.new(1, 0, 0, 25)
+Status.BackgroundTransparency = 1
+Status.Font = Enum.Font.Gotham
+Status.Text = "Procurando frutas..."
+Status.TextColor3 = Color3.fromRGB(170, 170, 170)
+Status.TextSize = 11
+Status.TextXAlignment = Enum.TextXAlignment.Left
+Status.Parent = Content
+
+--==================================================
 -- LISTA
 --==================================================
 
 local List = Instance.new("ScrollingFrame")
 List.Name = "FruitList"
-List.Position = UDim2.fromOffset(0, 86)
-List.Size = UDim2.new(1, 0, 1, -86)
+List.Position = UDim2.fromOffset(0, 112)
+List.Size = UDim2.new(1, 0, 1, -112)
 List.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 List.BorderSizePixel = 0
 List.ScrollBarThickness = 4
-List.CanvasSize = UDim2.new()
+List.CanvasSize = UDim2.new(0, 0, 0, 0)
 List.Parent = Content
+
+local ListCorner = Instance.new("UICorner")
+ListCorner.CornerRadius = UDim.new(0, 6)
+ListCorner.Parent = List
 
 local ListLayout = Instance.new("UIListLayout")
 ListLayout.Padding = UDim.new(0, 4)
+ListLayout.SortOrder = Enum.SortOrder.Name
 ListLayout.Parent = List
 
 --==================================================
@@ -169,48 +194,44 @@ ListLayout.Parent = List
 --==================================================
 
 local Minimized = false
+local NormalSize = UDim2.fromOffset(280, 330)
 
-local function Minimize()
+MinimizeButton.MouseButton1Click:Connect(function()
+
 	Minimized = true
 
 	Content.Visible = false
 	MinimizeButton.Visible = false
 
-	Window.Size = UDim2.fromOffset(50, 50)
+	Window.Size = UDim2.fromOffset(52, 52)
 
 	Title.Text = "🍎"
 
-	Window.Position = UDim2.new(
-		0,
-		30,
-		0.5,
-		-25
-	)
-end
-
-local function Restore()
-	Minimized = false
-
-	Window.Size = UDim2.fromOffset(280, 330)
-
-	Content.Visible = true
-	MinimizeButton.Visible = true
-
-	Title.Text = "Fruit Finder"
-end
-
-MinimizeButton.MouseButton1Click:Connect(Minimize)
+end)
 
 Window.InputBegan:Connect(function(Input)
 
-	if Minimized and Input.UserInputType == Enum.UserInputType.MouseButton1 then
-		Restore()
+	if not Minimized then
+		return
+	end
+
+	if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+		Minimized = false
+
+		Window.Size = NormalSize
+
+		Content.Visible = true
+		MinimizeButton.Visible = true
+
+		Title.Text = "Fruit Finder"
+
 	end
 
 end)
 
 --==================================================
--- ARRASTAR MENU
+-- ARRASTAR
 --==================================================
 
 local Dragging = false
@@ -218,6 +239,10 @@ local DragStart
 local StartPosition
 
 TopBar.InputBegan:Connect(function(Input)
+
+	if Minimized then
+		return
+	end
 
 	if Input.UserInputType == Enum.UserInputType.MouseButton1 then
 
@@ -235,19 +260,18 @@ UserInputService.InputChanged:Connect(function(Input)
 		return
 	end
 
-	if Input.UserInputType ~= Enum.UserInputType.MouseMovement then
-		return
+	if Input.UserInputType == Enum.UserInputType.MouseMovement then
+
+		local Delta = Input.Position - DragStart
+
+		Window.Position = UDim2.new(
+			StartPosition.X.Scale,
+			StartPosition.X.Offset + Delta.X,
+			StartPosition.Y.Scale,
+			StartPosition.Y.Offset + Delta.Y
+		)
+
 	end
-
-	local Delta = Input.Position - DragStart
-
-	Window.Position = UDim2.new(
-		StartPosition.X.Scale,
-		StartPosition.X.Offset + Delta.X,
-
-		StartPosition.Y.Scale,
-		StartPosition.Y.Offset + Delta.Y
-	)
 
 end)
 
@@ -260,7 +284,7 @@ UserInputService.InputEnded:Connect(function(Input)
 end)
 
 --==================================================
--- FRUIT TAGS
+-- FRUTAS
 --==================================================
 
 local FruitTags = {}
@@ -268,20 +292,20 @@ local FruitTags = {}
 local FruitColors = {
 	Rocket = Color3.fromRGB(180, 180, 180),
 	Spin = Color3.fromRGB(170, 170, 170),
-	Blade = Color3.fromRGB(210, 210, 210),
+	Blade = Color3.fromRGB(220, 220, 220),
 
 	Smoke = Color3.fromRGB(190, 190, 190),
 	Flame = Color3.fromRGB(255, 90, 30),
 	Ice = Color3.fromRGB(80, 210, 255),
 
-	Sand = Color3.fromRGB(220, 190, 100),
+	Sand = Color3.fromRGB(230, 200, 100),
 	Dark = Color3.fromRGB(150, 80, 220),
 	Light = Color3.fromRGB(255, 235, 80),
 
 	Magma = Color3.fromRGB(255, 70, 20),
 	Ghost = Color3.fromRGB(190, 150, 255),
 
-	Dragon = Color3.fromRGB(255, 80, 80),
+	Dragon = Color3.fromRGB(255, 70, 70),
 	Buddha = Color3.fromRGB(255, 200, 70),
 	Leopard = Color3.fromRGB(255, 170, 50),
 	Dough = Color3.fromRGB(255, 130, 180)
@@ -298,6 +322,7 @@ local function GetAdornee(Fruit)
 	end
 
 	return nil
+
 end
 
 local function CreateFruitTag(Fruit)
@@ -329,7 +354,7 @@ local function CreateFruitTag(Fruit)
 	Label.Size = UDim2.fromScale(1, 1)
 	Label.BackgroundTransparency = 1
 	Label.Font = Enum.Font.GothamBold
-	Label.TextSize = 11
+	Label.TextSize = Settings.TextSize
 	Label.TextStrokeTransparency = 0.35
 	Label.TextColor3 =
 		FruitColors[Fruit.Name]
@@ -367,7 +392,7 @@ local function RemoveFruitTag(Fruit)
 end
 
 --==================================================
--- LISTA DE FRUTAS
+-- ATUALIZAR LISTA
 --==================================================
 
 local function UpdateList()
@@ -381,6 +406,7 @@ local function UpdateList()
 	end
 
 	local Search = string.lower(SearchBox.Text)
+	local Count = 0
 
 	for Fruit, _ in pairs(FruitTags) do
 
@@ -391,31 +417,48 @@ local function UpdateList()
 			if Search == ""
 				or string.find(string.lower(Name), Search, 1, true) then
 
+				Count += 1
+
 				local Button = Instance.new("TextButton")
 
+				Button.Name = Name
 				Button.Size = UDim2.new(1, -8, 0, 30)
-				Button.BackgroundColor3 = Color3.fromRGB(39, 39, 48)
+				Button.BackgroundColor3 = Color3.fromRGB(40, 40, 49)
 				Button.BorderSizePixel = 0
-				Button.Font = Enum.Font.Gotham
+				Button.Font = Enum.Font.GothamBold
+				Button.Text = "  " .. Name
 				Button.TextColor3 =
 					FruitColors[Name]
 					or Color3.fromRGB(255, 255, 255)
 
 				Button.TextSize = 12
-				Button.Text = "  " .. Name
 				Button.TextXAlignment = Enum.TextXAlignment.Left
 				Button.Parent = List
 
 				local Corner = Instance.new("UICorner")
 				Corner.CornerRadius = UDim.new(0, 5)
 				Corner.Parent = Button
+
 			end
 
 		end
 
 	end
 
+	Status.Text = Count .. " fruta(s) encontrada(s)"
+
 end
+
+ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+
+	List.CanvasSize = UDim2.fromOffset(
+		0,
+		ListLayout.AbsoluteContentSize.Y + 8
+	)
+
+end)
+
+SearchBox:GetPropertyChangedSignal("Text"):Connect(UpdateList)
 
 --==================================================
 -- TOGGLE
@@ -428,14 +471,16 @@ ToggleButton.MouseButton1Click:Connect(function()
 	if Settings.Enabled then
 
 		ToggleButton.Text = "Fruit Finder: ON"
+
 		ToggleButton.BackgroundColor3 =
-			Color3.fromRGB(45, 120, 70)
+			Color3.fromRGB(45, 125, 70)
 
 	else
 
 		ToggleButton.Text = "Fruit Finder: OFF"
+
 		ToggleButton.BackgroundColor3 =
-			Color3.fromRGB(120, 45, 45)
+			Color3.fromRGB(125, 45, 45)
 
 	end
 
@@ -446,16 +491,22 @@ ToggleButton.MouseButton1Click:Connect(function()
 end)
 
 --==================================================
--- PESQUISA
+-- ENCONTRAR PASTA FRUITS
 --==================================================
 
-SearchBox:GetPropertyChangedSignal("Text"):Connect(UpdateList)
-
---==================================================
--- DETECTAR FRUTAS
---==================================================
+local FruitsFolder = workspace:FindFirstChild("Fruits")
 
 local function ScanFruits()
+
+	if not FruitsFolder then
+
+		Status.Text = "Pasta Fruits não encontrada"
+
+		UpdateList()
+
+		return
+
+	end
 
 	for _, Fruit in ipairs(FruitsFolder:GetChildren()) do
 
@@ -469,29 +520,79 @@ local function ScanFruits()
 	end
 
 	UpdateList()
+
 end
 
-FruitsFolder.ChildAdded:Connect(function(Fruit)
+--==================================================
+-- SE A PASTA FRUITS EXISTIR
+--==================================================
 
-	task.wait()
+if FruitsFolder then
 
-	if Fruit:IsA("Model")
-		or Fruit:IsA("BasePart") then
+	FruitsFolder.ChildAdded:Connect(function(Fruit)
 
-		CreateFruitTag(Fruit)
+		task.wait()
 
-	end
+		if Fruit:IsA("Model")
+			or Fruit:IsA("BasePart") then
 
-	UpdateList()
+			CreateFruitTag(Fruit)
 
-end)
+		end
 
-FruitsFolder.ChildRemoved:Connect(function(Fruit)
+		UpdateList()
 
-	RemoveFruitTag(Fruit)
-	UpdateList()
+	end)
 
-end)
+	FruitsFolder.ChildRemoved:Connect(function(Fruit)
+
+		RemoveFruitTag(Fruit)
+		UpdateList()
+
+	end)
+
+	ScanFruits()
+
+else
+
+	Status.Text = "Aguardando Workspace.Fruits..."
+
+	-- Detecta a pasta caso ela seja criada depois
+	workspace.ChildAdded:Connect(function(Object)
+
+		if Object.Name == "Fruits" then
+
+			FruitsFolder = Object
+
+			FruitsFolder.ChildAdded:Connect(function(Fruit)
+
+				task.wait()
+
+				if Fruit:IsA("Model")
+					or Fruit:IsA("BasePart") then
+
+					CreateFruitTag(Fruit)
+
+				end
+
+				UpdateList()
+
+			end)
+
+			FruitsFolder.ChildRemoved:Connect(function(Fruit)
+
+				RemoveFruitTag(Fruit)
+				UpdateList()
+
+			end)
+
+			ScanFruits()
+
+		end
+
+	end)
+
+end
 
 --==================================================
 -- DISTÂNCIA
@@ -557,7 +658,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 --==================================================
--- INICIAR
+-- FINAL
 --==================================================
 
-ScanFruits()
+print("[FruitFinder] Sistema iniciado com sucesso.")
