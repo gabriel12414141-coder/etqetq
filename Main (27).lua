@@ -1,12 +1,18 @@
 --========================================================
--- FRUIT FINDER - WORKSPACE INTEIRO
+-- FRUIT FINDER OTIMIZADO
+-- Detecta frutas no Workspace sem varrer tudo a cada 0.5s
 -- Para o seu próprio jogo Roblox
 --========================================================
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
-local UPDATE_TIME = 0.5
+--========================================================
+-- CONFIGURAÇÃO
+--========================================================
+
+local MAX_DISTANCE = 1000
+local SCAN_DELAY = 0.05
 
 --========================================================
 -- BANCO DE FRUTAS
@@ -69,163 +75,133 @@ local FRUITS = {
 }
 
 --========================================================
--- NORMALIZAR TEXTO
+-- NORMALIZAÇÃO
 --========================================================
 
 local function normalize(text)
 
-	text = tostring(text or "")
-	text = text:lower()
+	text = tostring(text or ""):lower()
 
-	text = text:gsub(
+	return text:gsub(
 		"[%s_%-%[%]%(%){}]",
 		""
 	)
-
-	return text
 end
 
 --========================================================
--- IDENTIFICAR POR NOME
+-- TABELA DE ALIASES PRÉ-NORMALIZADA
+-- Evita ficar normalizando toda hora
 --========================================================
 
-local function identifyByName(object)
+local ALIASES = {}
 
-	local names = {}
+for fruitName, aliases in pairs(FRUITS) do
 
-	table.insert(
-		names,
-		object.Name
-	)
+	for _, alias in ipairs(aliases) do
 
-	for _, descendant in ipairs(
-		object:GetDescendants()
-	) do
-
-		table.insert(
-			names,
-			descendant.Name
-		)
+		ALIASES[normalize(alias)] =
+			fruitName
 	end
-
-	for displayName, aliases in pairs(FRUITS) do
-
-		for _, objectName in ipairs(names) do
-
-			local normalizedObject =
-				normalize(objectName)
-
-			for _, alias in ipairs(aliases) do
-
-				if normalizedObject ==
-					normalize(alias) then
-
-					return displayName
-				end
-			end
-		end
-	end
-
-	return nil
 end
 
 --========================================================
--- IDENTIFICAR POR ATRIBUTOS
---========================================================
-
-local function identifyByAttributes(object)
-
-	local objects = {
-		object
-	}
-
-	for _, descendant in ipairs(
-		object:GetDescendants()
-	) do
-
-		table.insert(
-			objects,
-			descendant
-		)
-	end
-
-	for _, current in ipairs(objects) do
-
-		for key, value in pairs(
-			current:GetAttributes()
-		) do
-
-			local keyText =
-				normalize(key)
-
-			local valueText =
-				normalize(value)
-
-			-- Atributos comuns do sistema
-			if keyText == "fruitname"
-				or keyText == "fruit"
-				or keyText == "name" then
-
-				for displayName, aliases in pairs(FRUITS) do
-
-					for _, alias in ipairs(aliases) do
-
-						if valueText ==
-							normalize(alias) then
-
-							return displayName
-						end
-					end
-				end
-			end
-
-			for displayName, aliases in pairs(FRUITS) do
-
-				for _, alias in ipairs(aliases) do
-
-					local aliasText =
-						normalize(alias)
-
-					if valueText ==
-						aliasText then
-
-						return displayName
-					end
-				end
-			end
-		end
-	end
-
-	return nil
-end
-
---========================================================
--- IDENTIFICAR FRUTA
+-- IDENTIFICAÇÃO RÁPIDA
 --========================================================
 
 local function identifyFruit(object)
 
-	-- Primeiro procura atributos
-	local result =
-		identifyByAttributes(object)
+	----------------------------------------------
+	-- Nome do próprio objeto
+	----------------------------------------------
 
-	if result then
-		return result
+	local direct =
+		ALIASES[
+			normalize(object.Name)
+		]
+
+	if direct then
+		return direct
 	end
 
-	-- Depois procura nomes
-	result =
-		identifyByName(object)
+	----------------------------------------------
+	-- Atributos do objeto
+	----------------------------------------------
 
-	if result then
-		return result
+	for key, value in pairs(
+		object:GetAttributes()
+	) do
+
+		local keyNormalized =
+			normalize(key)
+
+		local valueNormalized =
+			normalize(value)
+
+		if keyNormalized == "fruitname"
+			or keyNormalized == "fruit"
+			or keyNormalized == "fruittype" then
+
+			local result =
+				ALIASES[valueNormalized]
+
+			if result then
+				return result
+			end
+		end
+	end
+
+	----------------------------------------------
+	-- Procurar descendentes
+	----------------------------------------------
+
+	for _, child in ipairs(
+		object:GetDescendants()
+	) do
+
+		local result =
+			ALIASES[
+				normalize(child.Name)
+			]
+
+		if result then
+			return result
+		end
+
+		for key, value in pairs(
+			child:GetAttributes()
+		) do
+
+			local keyNormalized =
+				normalize(key)
+
+			local valueNormalized =
+				normalize(value)
+
+			if keyNormalized == "fruitname"
+				or keyNormalized == "fruit"
+				or keyNormalized == "fruittype" then
+
+				local attributeResult =
+					ALIASES[valueNormalized]
+
+				if attributeResult then
+					return attributeResult
+				end
+			end
+		end
 	end
 
 	return nil
 end
 
 --========================================================
--- ENCONTRAR PARTE PRINCIPAL
+-- FRUTAS DETECTADAS
+--========================================================
+
+local detectedFruits = {}
+
+--========================================================
+-- ENCONTRAR PARTE DA FRUTA
 --========================================================
 
 local function getFruitPart(object)
@@ -258,23 +234,20 @@ local function getFruitPart(object)
 end
 
 --========================================================
--- DISPLAY SOBRE A FRUTA
+-- CRIAR TEXTO SOBRE A FRUTA
 --========================================================
 
-local function createFruitDisplay(
-	fruit,
-	fruitName
-)
+local function createDisplay(object, fruitName)
 
 	local part =
-		getFruitPart(fruit)
+		getFruitPart(object)
 
 	if not part then
 		return
 	end
 
 	local old =
-		fruit:FindFirstChild(
+		object:FindFirstChild(
 			"FruitNameDisplay"
 		)
 
@@ -295,8 +268,8 @@ local function createFruitDisplay(
 
 	billboard.Size =
 		UDim2.fromOffset(
-			190,
-			42
+			180,
+			40
 		)
 
 	billboard.StudsOffset =
@@ -310,13 +283,13 @@ local function createFruitDisplay(
 		true
 
 	billboard.MaxDistance =
-		1000
+		MAX_DISTANCE
 
 	billboard.LightInfluence =
 		0
 
 	billboard.Parent =
-		fruit
+		object
 
 	local label =
 		Instance.new(
@@ -363,45 +336,94 @@ local function createFruitDisplay(
 end
 
 --========================================================
--- PROCURAR WORKSPACE INTEIRO
+-- REGISTRAR FRUTA
 --========================================================
 
-local function getDroppedFruits()
+local function registerFruit(object)
 
-	local fruits = {}
-	local alreadyFound = {}
+	if detectedFruits[object] then
+		return
+	end
+
+	if not object:IsA("Model") then
+		return
+	end
+
+	local fruitName =
+		identifyFruit(object)
+
+	if not fruitName then
+		return
+	end
+
+	detectedFruits[object] = fruitName
+
+	createDisplay(
+		object,
+		fruitName
+	)
+
+end
+
+--========================================================
+-- REMOVER FRUTA
+--========================================================
+
+local function unregisterFruit(object)
+
+	if detectedFruits[object] then
+		detectedFruits[object] = nil
+	end
+end
+
+--========================================================
+-- VARREDURA INICIAL
+-- Executada somente uma vez
+--========================================================
+
+task.spawn(function()
 
 	for _, object in ipairs(
 		workspace:GetDescendants()
 	) do
 
-		if object:IsA("Model") then
+		registerFruit(object)
 
-			local fruitName =
-				identifyFruit(object)
+		-- Pequena pausa para não congelar
+		-- durante um mapa extremamente grande
 
-			if fruitName then
-
-				-- Evita pegar o mesmo modelo
-				-- várias vezes
-				if not alreadyFound[object] then
-
-					alreadyFound[object] = true
-
-					table.insert(
-						fruits,
-						{
-							Object = object,
-							Name = fruitName
-						}
-					)
-				end
-			end
-		end
+		task.wait(SCAN_DELAY)
 	end
 
-	return fruits
-end
+end)
+
+--========================================================
+-- DETECTAR FRUTA NOVA
+--========================================================
+
+workspace.DescendantAdded:Connect(
+	function(object)
+
+		-- Espera a estrutura da fruta terminar
+		task.defer(function()
+
+			registerFruit(object)
+
+		end)
+	end
+)
+
+--========================================================
+-- DETECTAR FRUTA REMOVIDA
+--========================================================
+
+workspace.DescendantRemoving:Connect(
+	function(object)
+
+		unregisterFruit(object)
+
+	end
+)
 
 --========================================================
 -- GUI
@@ -838,10 +860,11 @@ local function createGui(player)
 	)
 
 	--====================================================
-	-- ATUALIZAR
+	-- ATUALIZAR PAINEL
+	-- Não varre o Workspace aqui
 	--====================================================
 
-	local function update()
+	local function updatePanel()
 
 		for _, child in ipairs(
 			list:GetChildren()
@@ -854,65 +877,17 @@ local function createGui(player)
 			end
 		end
 
-		local fruits =
-			getDroppedFruits()
+		local count = 0
 
-		counter.Text =
-			tostring(
-				#fruits
-			)
+		for object, fruitName in pairs(
+			detectedFruits
+		) do
 
-		if #fruits == 0 then
+			if object
+				and object.Parent
+				and object:IsDescendantOf(workspace) then
 
-			local empty =
-				Instance.new(
-					"TextLabel"
-				)
-
-			empty.Size =
-				UDim2.new(
-					1,
-					-10,
-					0,
-					40
-				)
-
-			empty.BackgroundTransparency =
-				1
-
-			empty.Text =
-				"Nenhuma fruta encontrada"
-
-			empty.TextColor3 =
-				Color3.fromRGB(
-					160,
-					160,
-					160
-				)
-
-			empty.TextSize =
-				14
-
-			empty.Font =
-				Enum.Font.Gotham
-
-			empty.Parent =
-				list
-
-		else
-
-			for _, data in ipairs(fruits) do
-
-				local fruit =
-					data.Object
-
-				local fruitName =
-					data.Name
-
-				createFruitDisplay(
-					fruit,
-					fruitName
-				)
+				count += 1
 
 				local item =
 					Instance.new(
@@ -998,8 +973,16 @@ local function createGui(player)
 
 				label.Parent =
 					item
+
+			else
+
+				detectedFruits[object] =
+					nil
 			end
 		end
+
+		counter.Text =
+			tostring(count)
 
 		list.CanvasSize =
 			UDim2.new(
@@ -1011,38 +994,32 @@ local function createGui(player)
 	end
 
 	--====================================================
-	-- LOOP
+	-- ATUALIZAÇÃO DO PAINEL
 	--====================================================
 
-	task.spawn(
-		function()
+	task.spawn(function()
 
-			while gui.Parent do
+		while gui.Parent do
 
-				if not minimized then
-					update()
-				end
-
-				task.wait(
-					UPDATE_TIME
-				)
+			if not minimized then
+				updatePanel()
 			end
+
+			task.wait(0.5)
 		end
-	)
+	end)
 end
 
 --========================================================
--- JOGADORES
+-- PLAYERS
 --========================================================
 
 Players.PlayerAdded:Connect(
 	function(player)
 
-		task.spawn(
-			function()
-				createGui(player)
-			end
-		)
+		task.spawn(function()
+			createGui(player)
+		end)
 	end
 )
 
@@ -1050,9 +1027,7 @@ for _, player in ipairs(
 	Players:GetPlayers()
 ) do
 
-	task.spawn(
-		function()
-			createGui(player)
-		end
-	)
+	task.spawn(function()
+		createGui(player)
+	end)
 end
