@@ -3,9 +3,10 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
-local fruitLabels = {}
+local fruits = {}
 
-local function getPart(object)
+local function getFruitPart(object)
+	-- Só aceita Part ou Model
 	if object:IsA("BasePart") then
 		return object
 	end
@@ -17,66 +18,93 @@ local function getPart(object)
 	return nil
 end
 
-local function createFruitESP(object)
+local function isRealFruit(object)
+	-- Nome EXATAMENTE "Fruit"
 	if object.Name ~= "Fruit" then
+		return false
+	end
+
+	-- Precisa ser uma estrutura física
+	local part = getFruitPart(object)
+	if not part then
+		return false
+	end
+
+	-- Ignora objetos que estejam dentro de personagens
+	if object:FindFirstAncestorOfClass("Humanoid") then
+		return false
+	end
+
+	-- Ignora objetos dentro de ferramentas
+	if object:FindFirstAncestorOfClass("Tool") then
+		return false
+	end
+
+	return true
+end
+
+local function addFruit(object)
+	if not isRealFruit(object) then
 		return
 	end
 
-	if fruitLabels[object] then
+	if fruits[object] then
 		return
 	end
 
-	local part = getPart(object)
+	local part = getFruitPart(object)
 	if not part then
 		return
 	end
 
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "FruitNotifier"
-	billboard.Adornee = part
-	billboard.Size = UDim2.fromOffset(90, 35)
-	billboard.StudsOffset = Vector3.new(0, 3, 0)
-	billboard.AlwaysOnTop = true
-	billboard.MaxDistance = 10000
-	billboard.Parent = part
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "FruitESP"
+	gui.Adornee = part
+	gui.Size = UDim2.fromOffset(80, 30)
+	gui.StudsOffset = Vector3.new(0, 3, 0)
+	gui.AlwaysOnTop = true
+	gui.MaxDistance = 10000
+	gui.Parent = part
 
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1
 	label.Size = UDim2.fromScale(1, 1)
-	label.Text = "Fruit\n0 m"
-	label.TextSize = 12
 	label.Font = Enum.Font.Gotham
-	label.TextStrokeTransparency = 0.5
+	label.TextSize = 11
 	label.TextColor3 = Color3.new(1, 1, 1)
-	label.Parent = billboard
+	label.TextStrokeTransparency = 0.5
+	label.Text = "Fruit"
+	label.Parent = gui
 
-	fruitLabels[object] = {
-		gui = billboard,
-		label = label,
-		part = part
+	fruits[object] = {
+		part = part,
+		gui = gui,
+		label = label
 	}
 
 	object.AncestryChanged:Connect(function(_, parent)
 		if not parent then
-			fruitLabels[object] = nil
-			billboard:Destroy()
+			fruits[object] = nil
+			if gui then
+				gui:Destroy()
+			end
 		end
 	end)
 end
 
--- Frutas que já existem
+-- Detecta apenas objetos existentes
 for _, object in ipairs(Workspace:GetDescendants()) do
-	createFruitESP(object)
+	addFruit(object)
 end
 
--- Novas frutas
+-- Detecta novos objetos
 Workspace.DescendantAdded:Connect(function(object)
 	task.defer(function()
-		createFruitESP(object)
+		addFruit(object)
 	end)
 end)
 
--- Atualiza a distância
+-- Atualiza distância
 RunService.RenderStepped:Connect(function()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -85,11 +113,11 @@ RunService.RenderStepped:Connect(function()
 		return
 	end
 
-	for object, data in pairs(fruitLabels) do
+	for object, data in pairs(fruits) do
 		if object.Parent and data.part and data.part.Parent then
 			local distance = (root.Position - data.part.Position).Magnitude
 
-			-- Conversão aproximada de studs para metros
+			-- 1 stud ≈ 0,28 metro
 			local meters = distance * 0.28
 
 			data.label.Text = string.format("Fruit\n%.0f m", meters)
