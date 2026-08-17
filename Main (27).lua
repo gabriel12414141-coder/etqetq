@@ -1,143 +1,98 @@
--- Fruit Notifier
--- LocalScript -> StarterPlayer > StarterPlayerScripts
-
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
+local fruitLabels = {}
 
--- Coloque aqui os nomes EXATOS das frutas do seu jogo
-local FRUITS = {
-	["Rocket"] = true,
-	["Spin"] = true,
-	["Blade"] = true,
-	["Spring"] = true,
-	["Bomb"] = true,
-	["Smoke"] = true,
-	["Flame"] = true,
-	["Ice"] = true,
-	["Sand"] = true,
-	["Dark"] = true,
-	["Light"] = true,
-	["Magma"] = true,
-	["Quake"] = true,
-	["Buddha"] = true,
-	["Love"] = true,
-	["Spider"] = true,
-	["Phoenix"] = true,
-	["Portal"] = true,
-	["Rumble"] = true,
-	["Pain"] = true,
-	["Blizzard"] = true,
-	["Gravity"] = true,
-	["Mammoth"] = true,
-	["T-Rex"] = true,
-	["Dough"] = true,
-	["Shadow"] = true,
-	["Venom"] = true,
-	["Control"] = true,
-	["Spirit"] = true,
-	["Leopard"] = true,
-	["Kitsune"] = true,
-	["Dragon"] = true,
-}
-
--- Evita notificações duplicadas
-local detected = {}
-
-local function getRoot()
-	local character = player.Character
-	if not character then
-		return nil
-	end
-
-	return character:FindFirstChild("HumanoidRootPart")
-end
-
-local function getFruitPosition(object)
+local function getPart(object)
 	if object:IsA("BasePart") then
-		return object.Position
+		return object
 	end
 
 	if object:IsA("Model") then
-		if object.PrimaryPart then
-			return object.PrimaryPart.Position
-		end
-
-		local part = object:FindFirstChildWhichIsA("BasePart", true)
-
-		if part then
-			return part.Position
-		end
+		return object.PrimaryPart or object:FindFirstChildWhichIsA("BasePart", true)
 	end
 
 	return nil
 end
 
-local function notifyFruit(fruit)
-	if detected[fruit] then
+local function createFruitESP(object)
+	if object.Name ~= "Fruit" then
 		return
 	end
 
-	detected[fruit] = true
-
-	local root = getRoot()
-	local position = getFruitPosition(fruit)
-
-	local distanceText = "distância desconhecida"
-
-	if root and position then
-		local distance = (root.Position - position).Magnitude
-		distanceText = string.format("%.0f studs", distance)
+	if fruitLabels[object] then
+		return
 	end
 
-	local fruitName = fruit.Name
+	local part = getPart(object)
+	if not part then
+		return
+	end
 
-	pcall(function()
-		StarterGui:SetCore("SendNotification", {
-			Title = "🍎 FRUTA ENCONTRADA!",
-			Text = fruitName .. " • " .. distanceText,
-			Duration = 8
-		})
-	end)
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "FruitNotifier"
+	billboard.Adornee = part
+	billboard.Size = UDim2.fromOffset(90, 35)
+	billboard.StudsOffset = Vector3.new(0, 3, 0)
+	billboard.AlwaysOnTop = true
+	billboard.MaxDistance = 10000
+	billboard.Parent = part
 
-	-- Se a fruta for destruída, permite detectar outra fruta com o mesmo nome
-	fruit.AncestryChanged:Connect(function(_, parent)
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Text = "Fruit\n0 m"
+	label.TextSize = 12
+	label.Font = Enum.Font.Gotham
+	label.TextStrokeTransparency = 0.5
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.Parent = billboard
+
+	fruitLabels[object] = {
+		gui = billboard,
+		label = label,
+		part = part
+	}
+
+	object.AncestryChanged:Connect(function(_, parent)
 		if not parent then
-			detected[fruit] = nil
+			fruitLabels[object] = nil
+			billboard:Destroy()
 		end
 	end)
 end
 
-local function checkObject(object)
-	if not object then
-		return
-	end
-
-	-- Primeiro tenta pelo nome exato
-	if FRUITS[object.Name] then
-		notifyFruit(object)
-		return
-	end
-
-	-- Também aceita nomes terminando em "Fruit"
-	-- Exemplo: "DragonFruit", "KitsuneFruit"
-	if object.Name:sub(-5) == "Fruit" then
-		notifyFruit(object)
-	end
-end
-
--- Frutas que já existem no Workspace
+-- Frutas que já existem
 for _, object in ipairs(Workspace:GetDescendants()) do
-	checkObject(object)
+	createFruitESP(object)
 end
 
--- Detecta frutas novas imediatamente
+-- Novas frutas
 Workspace.DescendantAdded:Connect(function(object)
 	task.defer(function()
-		checkObject(object)
+		createFruitESP(object)
 	end)
 end)
 
-print("[Fruit Notifier] Ativado.")
+-- Atualiza a distância
+RunService.RenderStepped:Connect(function()
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+
+	if not root then
+		return
+	end
+
+	for object, data in pairs(fruitLabels) do
+		if object.Parent and data.part and data.part.Parent then
+			local distance = (root.Position - data.part.Position).Magnitude
+
+			-- Conversão aproximada de studs para metros
+			local meters = distance * 0.28
+
+			data.label.Text = string.format("Fruit\n%.0f m", meters)
+		end
+	end
+end)
