@@ -10,65 +10,89 @@ local retrying = {}
 local VALID_FRUITS = {
 	["Fruit"] = true,
 
-	["Rocket"] = true,
-	["Spin"] = true,
-	["Blade"] = true,
-	["Spring"] = true,
-	["Bomb"] = true,
-	["Smoke"] = true,
-	["Spike"] = true,
-	["Flame"] = true,
-	["Ice"] = true,
-	["Sand"] = true,
-	["Dark"] = true,
-	["Eagle"] = true,
-	["Diamond"] = true,
-	["Light"] = true,
-	["Rubber"] = true,
-	["Ghost"] = true,
-	["Magma"] = true,
-	["Quake"] = true,
-	["Buddha"] = true,
-	["Love"] = true,
-	["Creation"] = true,
-	["Spider"] = true,
-	["Sound"] = true,
-	["Phoenix"] = true,
-	["Portal"] = true,
-	["Lightning"] = true,
-	["Pain"] = true,
-	["Blizzard"] = true,
-	["Gravity"] = true,
-	["Mammoth"] = true,
-	["T-Rex"] = true,
-	["Dough"] = true,
-	["Shadow"] = true,
-	["Venom"] = true,
-	["Gas"] = true,
-	["Spirit"] = true,
-	["Tiger"] = true,
-	["Yeti"] = true,
-	["Kitsune"] = true,
-	["Control"] = true,
-	["Dragon"] = true,
+	["Rocket Fruit"] = true,
+	["RocketFruit"] = true,
+	["Spin Fruit"] = true,
+	["SpinFruit"] = true,
+	["Blade Fruit"] = true,
+	["BladeFruit"] = true,
+	["Spring Fruit"] = true,
+	["SpringFruit"] = true,
+	["Bomb Fruit"] = true,
+	["BombFruit"] = true,
+	["Smoke Fruit"] = true,
+	["SmokeFruit"] = true,
+	["Spike Fruit"] = true,
+	["SpikeFruit"] = true,
+	["Flame Fruit"] = true,
+	["FlameFruit"] = true,
+	["Ice Fruit"] = true,
+	["IceFruit"] = true,
+	["Sand Fruit"] = true,
+	["SandFruit"] = true,
+	["Dark Fruit"] = true,
+	["DarkFruit"] = true,
+	["Eagle Fruit"] = true,
+	["EagleFruit"] = true,
+	["Diamond Fruit"] = true,
+	["DiamondFruit"] = true,
+	["Light Fruit"] = true,
+	["LightFruit"] = true,
+	["Rubber Fruit"] = true,
+	["RubberFruit"] = true,
+	["Ghost Fruit"] = true,
+	["GhostFruit"] = true,
+	["Magma Fruit"] = true,
+	["MagmaFruit"] = true,
+	["Quake Fruit"] = true,
+	["QuakeFruit"] = true,
+	["Buddha Fruit"] = true,
+	["BuddhaFruit"] = true,
+	["Love Fruit"] = true,
+	["LoveFruit"] = true,
+	["Creation Fruit"] = true,
+	["CreationFruit"] = true,
+	["Spider Fruit"] = true,
+	["SpiderFruit"] = true,
+	["Sound Fruit"] = true,
+	["SoundFruit"] = true,
+	["Phoenix Fruit"] = true,
+	["PhoenixFruit"] = true,
+	["Portal Fruit"] = true,
+	["PortalFruit"] = true,
+	["Lightning Fruit"] = true,
+	["LightningFruit"] = true,
+	["Pain Fruit"] = true,
+	["PainFruit"] = true,
+	["Blizzard Fruit"] = true,
+	["BlizzardFruit"] = true,
+	["Gravity Fruit"] = true,
+	["GravityFruit"] = true,
+	["Mammoth Fruit"] = true,
+	["MammothFruit"] = true,
+	["T-Rex Fruit"] = true,
+	["T-RexFruit"] = true,
+	["Dough Fruit"] = true,
+	["DoughFruit"] = true,
+	["Shadow Fruit"] = true,
+	["ShadowFruit"] = true,
+	["Venom Fruit"] = true,
+	["VenomFruit"] = true,
+	["Gas Fruit"] = true,
+	["GasFruit"] = true,
+	["Spirit Fruit"] = true,
+	["SpiritFruit"] = true,
+	["Tiger Fruit"] = true,
+	["TigerFruit"] = true,
+	["Yeti Fruit"] = true,
+	["YetiFruit"] = true,
+	["Kitsune Fruit"] = true,
+	["KitsuneFruit"] = true,
+	["Control Fruit"] = true,
+	["ControlFruit"] = true,
+	["Dragon Fruit"] = true,
+	["DragonFruit"] = true,
 }
-
-local function isFruitName(name)
-	if VALID_FRUITS[name] then
-		return true
-	end
-
-	for fruitName in pairs(VALID_FRUITS) do
-		if fruitName ~= "Fruit" then
-			if name == fruitName .. " Fruit"
-				or name == fruitName .. "Fruit" then
-				return true
-			end
-		end
-	end
-
-	return false
-end
 
 local function getPart(object)
 	if object:IsA("BasePart") then
@@ -83,22 +107,61 @@ local function getPart(object)
 	return nil
 end
 
-local function createESP(object, part)
-	if fruits[object] then
+local function detect(object)
+
+	-- MUITO IMPORTANTE:
+	-- só aceita fruta que seja filha DIRETA do Workspace
+	if object.Parent ~= Workspace then
+		return
+	end
+
+	if not VALID_FRUITS[object.Name] then
+		return
+	end
+
+	if fruits[object] or retrying[object] then
+		return
+	end
+
+	local part = getPart(object)
+
+	if not part then
+		retrying[object] = true
+
+		task.spawn(function()
+			for _ = 1, 10 do
+				if not object.Parent then
+					break
+				end
+
+				task.wait(0.1)
+
+				if object.Parent ~= Workspace then
+					break
+				end
+
+				local newPart = getPart(object)
+
+				if newPart then
+					detect(object)
+					break
+				end
+			end
+
+			retrying[object] = nil
+		end)
+
 		return
 	end
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "FruitNotifier"
 	gui.Adornee = part
-	gui.Size = UDim2.fromOffset(120, 40)
+	gui.Size = UDim2.fromOffset(130, 45)
 	gui.StudsOffset = Vector3.new(0, 4, 0)
-
-	-- Sem limite de distância
 	gui.MaxDistance = 0
 	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
-
 	gui.Parent = part
 
 	local label = Instance.new("TextLabel")
@@ -107,7 +170,7 @@ local function createESP(object, part)
 	label.Font = Enum.Font.GothamBold
 	label.TextSize = 13
 	label.TextColor3 = Color3.new(1, 1, 1)
-	label.TextStrokeTransparency = 0.2
+	label.TextStrokeTransparency = 0.15
 	label.TextStrokeColor3 = Color3.new(0, 0, 0)
 	label.Text = object.Name .. "\n0 m"
 	label.Parent = gui
@@ -119,85 +182,29 @@ local function createESP(object, part)
 	}
 end
 
-local function detect(object)
-	if not object.Parent then
-		return
-	end
+-- Objetos que já estão no Workspace
+for _, object in ipairs(Workspace:GetChildren()) do
+	detect(object)
+end
 
-	if not isFruitName(object.Name) then
-		return
-	end
-
-	if fruits[object] or retrying[object] then
-		return
-	end
-
-	local part = getPart(object)
-
-	if part then
-		createESP(object, part)
-		return
-	end
-
-	-- Aguarda a parte física aparecer
-	retrying[object] = true
-
-	task.spawn(function()
-		for i = 1, 10 do
-			if not object.Parent then
-				break
-			end
-
-			task.wait(0.1)
-
-			local newPart = getPart(object)
-
-			if newPart then
-				createESP(object, newPart)
-				break
-			end
-		end
-
-		retrying[object] = nil
+-- Novos objetos diretamente no Workspace
+Workspace.ChildAdded:Connect(function(object)
+	task.defer(function()
+		detect(object)
 	end)
-end
-
--- Detecta o que já existe UMA vez
-for _, object in ipairs(Workspace:GetDescendants()) do
-	if isFruitName(object.Name) then
-		detect(object)
-	end
-end
-
--- Detecta objetos novos
-Workspace.DescendantAdded:Connect(function(object)
-
-	if isFruitName(object.Name) then
-		detect(object)
-		return
-	end
-
-	-- Caso o Handle/Part apareça depois da fruta
-	local parent = object.Parent
-
-	if parent and isFruitName(parent.Name) then
-		detect(parent)
-	end
 end)
 
--- UMA única atualização para todas as frutas
-local updateTimer = 0
+-- Atualização leve da distância
+local timer = 0
 
 RunService.Heartbeat:Connect(function(dt)
-	updateTimer += dt
+	timer += dt
 
-	-- Atualiza aproximadamente 10 vezes por segundo,
-	-- suficiente para a distância sem sobrecarregar.
-	if updateTimer < 0.1 then
+	if timer < 0.1 then
 		return
 	end
 
-	updateTimer = 0
+	timer = 0
 
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -207,7 +214,7 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 
 	for object, data in pairs(fruits) do
-		if not object.Parent or not data.part.Parent then
+		if object.Parent ~= Workspace or not data.part.Parent then
 			if data.gui then
 				data.gui:Destroy()
 			end
