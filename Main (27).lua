@@ -4,26 +4,66 @@ local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
-local detected = {}
-local pending = {}
+local fruits = {}
+local retrying = {}
 
-local FRUITS = {
-	"Rocket","Spin","Blade","Spring","Bomb","Smoke","Spike","Flame",
-	"Ice","Sand","Dark","Eagle","Diamond","Light","Rubber","Ghost",
-	"Magma","Quake","Buddha","Love","Creation","Spider","Sound",
-	"Phoenix","Portal","Lightning","Pain","Blizzard","Gravity",
-	"Mammoth","T-Rex","Dough","Shadow","Venom","Gas","Spirit",
-	"Tiger","Yeti","Kitsune","Control","Dragon"
+local VALID_FRUITS = {
+	["Fruit"] = true,
+
+	["Rocket"] = true,
+	["Spin"] = true,
+	["Blade"] = true,
+	["Spring"] = true,
+	["Bomb"] = true,
+	["Smoke"] = true,
+	["Spike"] = true,
+	["Flame"] = true,
+	["Ice"] = true,
+	["Sand"] = true,
+	["Dark"] = true,
+	["Eagle"] = true,
+	["Diamond"] = true,
+	["Light"] = true,
+	["Rubber"] = true,
+	["Ghost"] = true,
+	["Magma"] = true,
+	["Quake"] = true,
+	["Buddha"] = true,
+	["Love"] = true,
+	["Creation"] = true,
+	["Spider"] = true,
+	["Sound"] = true,
+	["Phoenix"] = true,
+	["Portal"] = true,
+	["Lightning"] = true,
+	["Pain"] = true,
+	["Blizzard"] = true,
+	["Gravity"] = true,
+	["Mammoth"] = true,
+	["T-Rex"] = true,
+	["Dough"] = true,
+	["Shadow"] = true,
+	["Venom"] = true,
+	["Gas"] = true,
+	["Spirit"] = true,
+	["Tiger"] = true,
+	["Yeti"] = true,
+	["Kitsune"] = true,
+	["Control"] = true,
+	["Dragon"] = true,
 }
 
 local function isFruitName(name)
-	if name == "Fruit" then
+	if VALID_FRUITS[name] then
 		return true
 	end
 
-	for _, fruit in ipairs(FRUITS) do
-		if name == fruit .. " Fruit" or name == fruit .. "Fruit" then
-			return true
+	for fruitName in pairs(VALID_FRUITS) do
+		if fruitName ~= "Fruit" then
+			if name == fruitName .. " Fruit"
+				or name == fruitName .. "Fruit" then
+				return true
+			end
 		end
 	end
 
@@ -36,44 +76,22 @@ local function getPart(object)
 	end
 
 	if object:IsA("Model") then
-		if object.PrimaryPart then
-			return object.PrimaryPart
-		end
-
-		return object:FindFirstChildWhichIsA("BasePart", true)
+		return object.PrimaryPart
+			or object:FindFirstChildWhichIsA("BasePart", true)
 	end
 
 	return nil
 end
 
-local function createESP(object)
-	if not object or not object.Parent then
-		return false
+local function createESP(object, part)
+	if fruits[object] then
+		return
 	end
-
-	if not isFruitName(object.Name) then
-		return false
-	end
-
-	if detected[object] then
-		return true
-	end
-
-	local part = getPart(object)
-
-	if not part then
-		return false
-	end
-
-	detected[object] = true
-	pending[object] = nil
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "FruitNotifier"
 	gui.Adornee = part
-	gui.Size = UDim2.fromOffset(140, 45)
-
-	-- Fica acima da fruta
+	gui.Size = UDim2.fromOffset(120, 40)
 	gui.StudsOffset = Vector3.new(0, 4, 0)
 
 	-- Sem limite de distância
@@ -84,52 +102,25 @@ local function createESP(object)
 	gui.Parent = part
 
 	local label = Instance.new("TextLabel")
-	label.Name = "FruitInfo"
 	label.BackgroundTransparency = 1
 	label.Size = UDim2.fromScale(1, 1)
-
 	label.Font = Enum.Font.GothamBold
 	label.TextSize = 13
 	label.TextColor3 = Color3.new(1, 1, 1)
-
-	label.TextStrokeTransparency = 0.15
+	label.TextStrokeTransparency = 0.2
 	label.TextStrokeColor3 = Color3.new(0, 0, 0)
-
 	label.Text = object.Name .. "\n0 m"
 	label.Parent = gui
 
-	local connection
-
-	connection = RunService.RenderStepped:Connect(function()
-		if not object.Parent or not part.Parent then
-			connection:Disconnect()
-
-			detected[object] = nil
-
-			if gui then
-				gui:Destroy()
-			end
-
-			return
-		end
-
-		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart")
-
-		if root then
-			local studs = (root.Position - part.Position).Magnitude
-			local meters = studs * 0.28
-
-			label.Text = object.Name .. string.format("\n%.0f m", meters)
-		end
-	end)
-
-	return true
+	fruits[object] = {
+		part = part,
+		gui = gui,
+		label = label
+	}
 end
 
--- Tenta encontrar a parte da fruta várias vezes
-local function detectWithRetry(object)
-	if pending[object] then
+local function detect(object)
+	if not object.Parent then
 		return
 	end
 
@@ -137,66 +128,96 @@ local function detectWithRetry(object)
 		return
 	end
 
-	pending[object] = true
+	if fruits[object] or retrying[object] then
+		return
+	end
+
+	local part = getPart(object)
+
+	if part then
+		createESP(object, part)
+		return
+	end
+
+	-- Aguarda a parte física aparecer
+	retrying[object] = true
 
 	task.spawn(function()
-
-		-- Tenta imediatamente
-		if createESP(object) then
-			return
-		end
-
-		-- Tenta novamente enquanto o objeto termina de carregar
-		for i = 1, 12 do
+		for i = 1, 10 do
 			if not object.Parent then
-				pending[object] = nil
-				return
+				break
 			end
 
 			task.wait(0.1)
 
-			if createESP(object) then
-				return
+			local newPart = getPart(object)
+
+			if newPart then
+				createESP(object, newPart)
+				break
 			end
 		end
 
-		pending[object] = nil
+		retrying[object] = nil
 	end)
 end
 
--- Detecta o que já existe
+-- Detecta o que já existe UMA vez
 for _, object in ipairs(Workspace:GetDescendants()) do
 	if isFruitName(object.Name) then
-		detectWithRetry(object)
+		detect(object)
 	end
 end
 
--- Detecta novas frutas
+-- Detecta objetos novos
 Workspace.DescendantAdded:Connect(function(object)
 
-	-- Se o próprio objeto for a fruta
 	if isFruitName(object.Name) then
-		detectWithRetry(object)
+		detect(object)
+		return
 	end
 
-	-- Se for uma parte adicionada dentro de uma fruta
+	-- Caso o Handle/Part apareça depois da fruta
 	local parent = object.Parent
 
 	if parent and isFruitName(parent.Name) then
-		detectWithRetry(parent)
+		detect(parent)
 	end
 end)
 
--- Verificação de segurança:
--- procura frutas novas a cada 0.5 segundo
-task.spawn(function()
-	while true do
-		task.wait(0.5)
+-- UMA única atualização para todas as frutas
+local updateTimer = 0
 
-		for _, object in ipairs(Workspace:GetDescendants()) do
-			if isFruitName(object.Name) and not detected[object] then
-				detectWithRetry(object)
+RunService.Heartbeat:Connect(function(dt)
+	updateTimer += dt
+
+	-- Atualiza aproximadamente 10 vezes por segundo,
+	-- suficiente para a distância sem sobrecarregar.
+	if updateTimer < 0.1 then
+		return
+	end
+
+	updateTimer = 0
+
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+
+	if not root then
+		return
+	end
+
+	for object, data in pairs(fruits) do
+		if not object.Parent or not data.part.Parent then
+			if data.gui then
+				data.gui:Destroy()
 			end
+
+			fruits[object] = nil
+		else
+			local distance = (root.Position - data.part.Position).Magnitude
+			local meters = distance * 0.28
+
+			data.label.Text = object.Name .. string.format("\n%.0f m", meters)
 		end
 	end
 end)
