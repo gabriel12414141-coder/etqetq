@@ -3,96 +3,31 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
+local detected = {}
+local waiting = {}
 
-local fruits = {}
-local retrying = {}
-
-local VALID_FRUITS = {
-	["Fruit"] = true,
-
-	["Rocket Fruit"] = true,
-	["RocketFruit"] = true,
-	["Spin Fruit"] = true,
-	["SpinFruit"] = true,
-	["Blade Fruit"] = true,
-	["BladeFruit"] = true,
-	["Spring Fruit"] = true,
-	["SpringFruit"] = true,
-	["Bomb Fruit"] = true,
-	["BombFruit"] = true,
-	["Smoke Fruit"] = true,
-	["SmokeFruit"] = true,
-	["Spike Fruit"] = true,
-	["SpikeFruit"] = true,
-	["Flame Fruit"] = true,
-	["FlameFruit"] = true,
-	["Ice Fruit"] = true,
-	["IceFruit"] = true,
-	["Sand Fruit"] = true,
-	["SandFruit"] = true,
-	["Dark Fruit"] = true,
-	["DarkFruit"] = true,
-	["Eagle Fruit"] = true,
-	["EagleFruit"] = true,
-	["Diamond Fruit"] = true,
-	["DiamondFruit"] = true,
-	["Light Fruit"] = true,
-	["LightFruit"] = true,
-	["Rubber Fruit"] = true,
-	["RubberFruit"] = true,
-	["Ghost Fruit"] = true,
-	["GhostFruit"] = true,
-	["Magma Fruit"] = true,
-	["MagmaFruit"] = true,
-	["Quake Fruit"] = true,
-	["QuakeFruit"] = true,
-	["Buddha Fruit"] = true,
-	["BuddhaFruit"] = true,
-	["Love Fruit"] = true,
-	["LoveFruit"] = true,
-	["Creation Fruit"] = true,
-	["CreationFruit"] = true,
-	["Spider Fruit"] = true,
-	["SpiderFruit"] = true,
-	["Sound Fruit"] = true,
-	["SoundFruit"] = true,
-	["Phoenix Fruit"] = true,
-	["PhoenixFruit"] = true,
-	["Portal Fruit"] = true,
-	["PortalFruit"] = true,
-	["Lightning Fruit"] = true,
-	["LightningFruit"] = true,
-	["Pain Fruit"] = true,
-	["PainFruit"] = true,
-	["Blizzard Fruit"] = true,
-	["BlizzardFruit"] = true,
-	["Gravity Fruit"] = true,
-	["GravityFruit"] = true,
-	["Mammoth Fruit"] = true,
-	["MammothFruit"] = true,
-	["T-Rex Fruit"] = true,
-	["T-RexFruit"] = true,
-	["Dough Fruit"] = true,
-	["DoughFruit"] = true,
-	["Shadow Fruit"] = true,
-	["ShadowFruit"] = true,
-	["Venom Fruit"] = true,
-	["VenomFruit"] = true,
-	["Gas Fruit"] = true,
-	["GasFruit"] = true,
-	["Spirit Fruit"] = true,
-	["SpiritFruit"] = true,
-	["Tiger Fruit"] = true,
-	["TigerFruit"] = true,
-	["Yeti Fruit"] = true,
-	["YetiFruit"] = true,
-	["Kitsune Fruit"] = true,
-	["KitsuneFruit"] = true,
-	["Control Fruit"] = true,
-	["ControlFruit"] = true,
-	["Dragon Fruit"] = true,
-	["DragonFruit"] = true,
+local FRUITS = {
+	"Rocket","Spin","Blade","Spring","Bomb","Smoke","Spike","Flame",
+	"Ice","Sand","Dark","Eagle","Diamond","Light","Rubber","Ghost",
+	"Magma","Quake","Buddha","Love","Creation","Spider","Sound",
+	"Phoenix","Portal","Lightning","Pain","Blizzard","Gravity",
+	"Mammoth","T-Rex","Dough","Shadow","Venom","Gas","Spirit",
+	"Tiger","Yeti","Kitsune","Control","Dragon"
 }
+
+local function isFruitName(name)
+	if name == "Fruit" then
+		return true
+	end
+
+	for _, fruit in ipairs(FRUITS) do
+		if name == fruit .. " Fruit" or name == fruit .. "Fruit" then
+			return true
+		end
+	end
+
+	return false
+end
 
 local function getPart(object)
 	if object:IsA("BasePart") then
@@ -107,124 +42,123 @@ local function getPart(object)
 	return nil
 end
 
-local function detect(object)
+local function createESP(object, part)
 
-	-- MUITO IMPORTANTE:
-	-- só aceita fruta que seja filha DIRETA do Workspace
-	if object.Parent ~= Workspace then
+	if detected[object] then
 		return
 	end
 
-	if not VALID_FRUITS[object.Name] then
-		return
-	end
-
-	if fruits[object] or retrying[object] then
-		return
-	end
-
-	local part = getPart(object)
-
-	if not part then
-		retrying[object] = true
-
-		task.spawn(function()
-			for _ = 1, 10 do
-				if not object.Parent then
-					break
-				end
-
-				task.wait(0.1)
-
-				if object.Parent ~= Workspace then
-					break
-				end
-
-				local newPart = getPart(object)
-
-				if newPart then
-					detect(object)
-					break
-				end
-			end
-
-			retrying[object] = nil
-		end)
-
-		return
-	end
+	detected[object] = true
+	waiting[object] = nil
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "FruitNotifier"
 	gui.Adornee = part
 	gui.Size = UDim2.fromOffset(130, 45)
 	gui.StudsOffset = Vector3.new(0, 4, 0)
+
+	-- Sem limite de distância
 	gui.MaxDistance = 0
 	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
+
 	gui.Parent = part
 
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1
 	label.Size = UDim2.fromScale(1, 1)
+
 	label.Font = Enum.Font.GothamBold
 	label.TextSize = 13
+	label.TextScaled = false
+
 	label.TextColor3 = Color3.new(1, 1, 1)
-	label.TextStrokeTransparency = 0.15
+	label.TextStrokeTransparency = 0.2
 	label.TextStrokeColor3 = Color3.new(0, 0, 0)
+
 	label.Text = object.Name .. "\n0 m"
 	label.Parent = gui
 
-	fruits[object] = {
-		part = part,
-		gui = gui,
-		label = label
-	}
-end
+	local connection
 
--- Objetos que já estão no Workspace
-for _, object in ipairs(Workspace:GetChildren()) do
-	detect(object)
-end
+	connection = RunService.RenderStepped:Connect(function()
 
--- Novos objetos diretamente no Workspace
-Workspace.ChildAdded:Connect(function(object)
-	task.defer(function()
-		detect(object)
-	end)
-end)
+		if not object.Parent or not part.Parent then
+			connection:Disconnect()
 
--- Atualização leve da distância
-local timer = 0
+			detected[object] = nil
 
-RunService.Heartbeat:Connect(function(dt)
-	timer += dt
-
-	if timer < 0.1 then
-		return
-	end
-
-	timer = 0
-
-	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-
-	if not root then
-		return
-	end
-
-	for object, data in pairs(fruits) do
-		if object.Parent ~= Workspace or not data.part.Parent then
-			if data.gui then
-				data.gui:Destroy()
+			if gui then
+				gui:Destroy()
 			end
 
-			fruits[object] = nil
-		else
-			local distance = (root.Position - data.part.Position).Magnitude
-			local meters = distance * 0.28
-
-			data.label.Text = object.Name .. string.format("\n%.0f m", meters)
+			return
 		end
+
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+
+		if root then
+			local studs = (root.Position - part.Position).Magnitude
+			local meters = studs * 0.28
+
+			label.Text = object.Name .. string.format("\n%.0f m", meters)
+		end
+	end)
+end
+
+local function detectFruit(object)
+
+	if not isFruitName(object.Name) then
+		return
 	end
+
+	if detected[object] or waiting[object] then
+		return
+	end
+
+	local part = getPart(object)
+
+	-- Se a parte já existe, cria imediatamente
+	if part then
+		createESP(object, part)
+		return
+	end
+
+	-- Se a parte ainda não existe, espera sem ficar escaneando o Workspace
+	waiting[object] = true
+
+	task.spawn(function()
+
+		for _ = 1, 20 do
+
+			if not object.Parent then
+				waiting[object] = nil
+				return
+			end
+
+			task.wait(0.1)
+
+			local newPart = getPart(object)
+
+			if newPart then
+				createESP(object, newPart)
+				return
+			end
+		end
+
+		waiting[object] = nil
+	end)
+end
+
+-- Frutas que já existem
+for _, object in ipairs(Workspace:GetDescendants()) do
+	detectFruit(object)
+end
+
+-- Novas frutas
+Workspace.DescendantAdded:Connect(function(object)
+	task.defer(function()
+		detectFruit(object)
+	end)
 end)
