@@ -42,26 +42,68 @@ local function getPart(object)
 	return nil
 end
 
-local function createESP(object, part)
+local function createESP(object)
+
+	if not isFruitName(object.Name) then
+		return
+	end
 
 	if detected[object] then
 		return
 	end
 
+	local part = getPart(object)
+
+	-- Se a fruta ainda não possui uma parte física,
+	-- não desiste: coloca na fila para tentar novamente.
+	if not part then
+
+		if waiting[object] then
+			return
+		end
+
+		waiting[object] = true
+
+		task.spawn(function()
+
+			for i = 1, 20 do
+
+				if not object.Parent then
+					break
+				end
+
+				if detected[object] then
+					break
+				end
+
+				task.wait(0.1)
+
+				part = getPart(object)
+
+				if part then
+					createESP(object)
+					break
+				end
+			end
+
+			waiting[object] = nil
+		end)
+
+		return
+	end
+
 	detected[object] = true
-	waiting[object] = nil
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "FruitNotifier"
 	gui.Adornee = part
+
 	gui.Size = UDim2.fromOffset(130, 45)
 	gui.StudsOffset = Vector3.new(0, 4, 0)
 
-	-- Sem limite de distância
 	gui.MaxDistance = 0
 	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
-
 	gui.Parent = part
 
 	local label = Instance.new("TextLabel")
@@ -84,6 +126,7 @@ local function createESP(object, part)
 	connection = RunService.RenderStepped:Connect(function()
 
 		if not object.Parent or not part.Parent then
+
 			connection:Disconnect()
 
 			detected[object] = nil
@@ -98,67 +141,25 @@ local function createESP(object, part)
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 
-		if root then
-			local studs = (root.Position - part.Position).Magnitude
-			local meters = studs * 0.28
-
-			label.Text = object.Name .. string.format("\n%.0f m", meters)
-		end
-	end)
-end
-
-local function detectFruit(object)
-
-	if not isFruitName(object.Name) then
-		return
-	end
-
-	if detected[object] or waiting[object] then
-		return
-	end
-
-	local part = getPart(object)
-
-	-- Se a parte já existe, cria imediatamente
-	if part then
-		createESP(object, part)
-		return
-	end
-
-	-- Se a parte ainda não existe, espera sem ficar escaneando o Workspace
-	waiting[object] = true
-
-	task.spawn(function()
-
-		for _ = 1, 20 do
-
-			if not object.Parent then
-				waiting[object] = nil
-				return
-			end
-
-			task.wait(0.1)
-
-			local newPart = getPart(object)
-
-			if newPart then
-				createESP(object, newPart)
-				return
-			end
+		if not root then
+			return
 		end
 
-		waiting[object] = nil
+		local studs = (root.Position - part.Position).Magnitude
+		local meters = studs * 0.28
+
+		label.Text = object.Name .. string.format("\n%.0f m", meters)
 	end)
 end
 
 -- Frutas que já existem
 for _, object in ipairs(Workspace:GetDescendants()) do
-	detectFruit(object)
+	createESP(object)
 end
 
--- Novas frutas
+-- Frutas que aparecerem depois
 Workspace.DescendantAdded:Connect(function(object)
 	task.defer(function()
-		detectFruit(object)
+		createESP(object)
 	end)
 end)
